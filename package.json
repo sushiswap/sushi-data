@@ -1,0 +1,31 @@
+{
+	"name": "sushi-data",
+	"license": "MIT",
+	"version": "0.0.0",
+	"author": "SushiSwap",
+	"main": "index.js",
+	"scripts": {
+		"lint": "eslint .",
+		"pack": "webpack --mode production",
+		"prepublish": "npm run pack"
+	},
+	"dependencies": {
+		"commander": "6.1.0",
+		"csv-stringify": "5.3.3",
+		"graph-results-pager": "~1.0.0",
+		"graphql": "14.5.8",
+		"moment": "~2.24.0",
+		"node-fetch": "2.6.0",
+		"subscriptions-transport-ws": "0.9.16",
+		"ws": "7.2.0"
+	},
+	"devDependencies": {
+		"eslint": "5.16.0",
+		"eslint-config-prettier": "4.3.0",
+		"eslint-plugin-import": "2.18.2",
+		"eslint-plugin-prettier": "3.1.0",
+		"prettier": "1.17.1",
+		"webpack": "4.41.2",
+		"webpack-cli": "3.3.9"
+	}
+}
