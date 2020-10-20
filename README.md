@@ -7,7 +7,9 @@ data has been indexed by the Graph via the subgraph the SushiSwap team maintains
 
 The below all return a Promise that resolves with the requested results.
 
-1. `masterchef.masterChefPools()` Get all pool info for pools in MasterChef.
+1. `masterchef.Info()` Get MasterChef Contract Info.
+2. `masterchef.Pools()` Get all pool info for pools in MasterChef.
+3. `masterchef.TimeLocks()` Get all queued TimLock Txs.
 
 ## Example
 
@@ -18,6 +20,10 @@ import sushiData from 'sushi-data'; // es modules
 
 // query and log resolved results
 sushiData.masterchef
-  .masterChefPools()
-  .then(masterchef => console.log(masterchef))
+  .Pools()
+  .then(pools => console.log(pools))
+
+sushiData.masterchef
+  .TimeLocks()
+  .then(timelocks => console.log(timelocks))
 ```
