@@ -4,6 +4,7 @@ const pageResults = require('graph-results-pager');
 
 const graphAPIEndpoints = {
 	masterchef: 'https://api.thegraph.com/subgraphs/name/sushiswap/sushiswap',
+	bar: 'https://api.thegraph.com/subgraphs/name/sushiswap/sushi-bar'
 };
 
 module.exports = {
@@ -126,6 +127,63 @@ module.exports = {
 						canceledTx: canceledTx,
 						executedTx: executedTx
 					})),
+				)
+				.catch(err => console.log(err));
+		},
+
+	},
+	bar: {
+		Info() {
+			return pageResults({
+				api: graphAPIEndpoints.bar,
+				query: {
+					entity: 'bars',
+					properties: [
+						'decimals',
+						'name',
+						'sushi',
+						'symbol',
+						'totalSupply',
+						'ratio',
+						'updatedAt'
+					]
+				}
+			})
+				.then(results =>
+					results.map(({ decimals, name, sushi, symbol, totalSupply, ratio, updatedAt }) => ({
+						decimals: Number(decimals),
+						name: name,
+						sushi: sushi,
+						symbol: symbol,
+						totalSupply: Number(totalSupply),
+						ratio: Number(ratio),
+						sushiStaked: Number(totalSupply) * Number(ratio),
+						updatedAt: Number(updatedAt)
+					}))
+				)
+				.catch(err => console.log(err));
+		},
+
+		User({ user = undefined }) {
+			console.log(user)
+			return pageResults({
+				api: graphAPIEndpoints.bar,
+				query: {
+					entity: 'users',
+					selection: {
+						where: {
+							id: user ? `\\"${user}\\"` : undefined,
+						}
+					},
+					properties: [
+						'xSushi'
+					]
+				}
+			})
+				.then(results =>
+					results.map(({ xSushi }) => ({
+						xSushi: Number(xSushi)
+					}))
 				)
 				.catch(err => console.log(err));
 		},
