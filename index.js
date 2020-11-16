@@ -5,7 +5,8 @@ const pageResults = require('graph-results-pager');
 const graphAPIEndpoints = {
 	masterchef: 'https://api.thegraph.com/subgraphs/name/sushiswap/sushiswap',
 	bar: 'https://api.thegraph.com/subgraphs/name/sushiswap/sushi-bar',
-	timelock: 'https://api.thegraph.com/subgraphs/name/sushiswap/sushi-timelock'
+	timelock: 'https://api.thegraph.com/subgraphs/name/sushiswap/sushi-timelock',
+	maker: 'https://api.thegraph.com/subgraphs/name/sushiswap/sushi-maker'
 };
 
 module.exports = {
@@ -225,6 +226,89 @@ module.exports = {
 				.catch(err => console.log(err));
 		},
 
+	},
+	maker: {
+		Info() {
+			return pageResults({
+				api: graphAPIEndpoints.maker,
+				query: {
+					entity: 'makers',
+					properties: [
+						'id',
+						'sushiServed'
+					]
+				}
+			})
+				.then(results =>
+					results.map(({ id, sushiServed }) => ({
+						address: id,
+						sushiServed: Number(sushiServed)
+					}))
+				)
+				.catch(err => console.log(err));
+		},
+
+		Servings() {
+			return pageResults({
+				api: graphAPIEndpoints.maker,
+				query: {
+					entity: 'servings',
+					selection: {
+						orderBy: 'block',
+						orderDirection: 'desc'
+					},
+					properties: [
+						'server { id }',
+						'tx',
+						'pair',
+						'token0',
+						'token1',
+						'sushiServed',
+						'block',
+						'timestamp'
+					]
+				}
+			})
+				.then(results =>
+					results.map(({ server, tx, pair, token0, token1, sushiServed, block, timestamp }) => ({
+						serverAddress: server.id,
+						tx: tx,
+						pair: pair,
+						token0: token0,
+						token1: token1,
+						sushiServed: Number(sushiServed),
+						block: Number(block),
+						timestamp: Number(timestamp * 1000),
+						date: new Date(timestamp * 1000)
+					}))
+				)
+				.catch(err => console.log(err));
+		},
+
+		// TODO: Add support for getting Server's history of Servings here
+		Servers() {
+			return pageResults({
+				api: graphAPIEndpoints.maker,
+				query: {
+					entity: 'servers',
+					selection: {
+						orderBy: 'sushiServed',
+						orderDirection: 'desc'
+					},
+					properties: [
+						'id',
+						'sushiServed'
+					]
+				}
+			})
+				.then(results =>
+					results.map(({ id, sushiServed }) => ({
+						serverAddress: id,
+						sushiServed: Number(sushiServed)
+					}))
+				)
+				.catch(err => console.log(err));
+		}
 	},
 	timelock: {
 		// TODO: We can probably split this up into QueuedTxs, CanceledTxs, and ExecutedTxs
