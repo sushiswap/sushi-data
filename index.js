@@ -2,11 +2,13 @@
 
 const pageResults = require('graph-results-pager');
 
+// TODO: exchange will need to be replaced with new exchange subgraph once it's finished
 const graphAPIEndpoints = {
 	masterchef: 'https://api.thegraph.com/subgraphs/name/sushiswap/sushiswap',
 	bar: 'https://api.thegraph.com/subgraphs/name/sushiswap/sushi-bar',
 	timelock: 'https://api.thegraph.com/subgraphs/name/sushiswap/sushi-timelock',
-	maker: 'https://api.thegraph.com/subgraphs/name/sushiswap/sushi-maker'
+	maker: 'https://api.thegraph.com/subgraphs/name/sushiswap/sushi-maker',
+	exchange: 'https://api.thegraph.com/subgraphs/name/zippoxer/sushiswap-subgraph-fork'
 };
 
 module.exports = {
@@ -188,7 +190,7 @@ module.exports = {
 					entity: 'users',
 					selection: {
 						where: {
-							id: user ? `\\"${user}\\"` : undefined,
+							id: user ? `\\"${user.toLowerCase()}\\"` : undefined,
 						}
 					},
 					properties: [
@@ -305,6 +307,35 @@ module.exports = {
 					results.map(({ id, sushiServed }) => ({
 						serverAddress: id,
 						sushiServed: Number(sushiServed)
+					}))
+				)
+				.catch(err => console.log(err));
+		},
+
+		PendingServings(maker_address = "0x6684977bbed67e101bb80fc07fccfba655c0a64f") {
+			console.log(maker_address)
+			return pageResults({
+				api: graphAPIEndpoints.exchange,
+				query: {
+					entity: 'users',
+					selection: {
+						where: {
+							id: `\\"${maker_address}\\"`,
+						},
+					},
+					properties: [
+						'liquidityPositions { id, liquidityTokenBalance, pair { id, totalSupply, reserveUSD, token0 { id, name, symbol }, token1 { id, symbol, name } } }'
+					]
+				}
+			})
+				.then(results =>
+					results.map(({ liquidityPositions }) => ({
+						servings: liquidityPositions.map(({ liquidityTokenBalance, pair }) => ({
+							address: pair.id,
+							token0: pair.token0,
+							token1: pair.token1,
+							valueUSD: (liquidityTokenBalance / pair.totalSupply) * pair.reserveUSD
+						})),
 					}))
 				)
 				.catch(err => console.log(err));
