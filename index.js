@@ -14,8 +14,59 @@ const graphAPIEndpoints = {
 module.exports = {
 	pageResults,
 	graphAPIEndpoints,
+	weth: {
+		price() {
+			let weth_usdc_pair = "0x397ff1542f962076d0bfe58ea045ffa2d347aca0"
+			return pageResults({
+				api: graphAPIEndpoints.exchange,
+				query: {
+					entity: 'pairs',
+					selection: {
+						where: {
+							id: `\\"${weth_usdc_pair}\\"`
+						}
+					},
+					properties: [
+						'token0Price'
+					]
+				}
+			})
+				.then(([{ token0Price }]) => (Number(token0Price)))
+				.catch(err => console.error(err))
+		}
+	},
+	// TODO: can add blockNumber as another parameter to this to get the price for any block
+	sushi: {
+		info() {
+			let sushi_address = "0x6b3595068778dd592e39a122f4f5a5cf09c90fe2"
+			return pageResults({
+				api: graphAPIEndpoints.exchange,
+				query: {
+					entity: 'tokens',
+					selection: {
+						where: {
+							id: `\\"${sushi_address}\\"`
+						}
+					},
+					properties: [
+						'derivedETH',
+						'totalSupply'
+					]
+				}
+			})
+				// TODO: need to figure out to not return this is an arraay, rather just an object
+				.then(results =>
+					results.map(({ derivedETH, totalSupply }) => ({
+						derivedETH: Number(derivedETH),
+						totalSupply: Number(totalSupply)
+					}))
+				)
+				.catch(err => console.log(err));
+		}
+	},
+
 	masterchef: {
-		Info() {
+		info() {
 			return pageResults({
 				api: graphAPIEndpoints.masterchef,
 				// Note: a single subgraph fetch can return 1000 results, any larger numbers will trigger multiple fetches
@@ -40,8 +91,9 @@ module.exports = {
 				)
 				.catch(err => console.log(err));
 		},
-
-		Pools() {
+		// TODO: probably better to have a way for this to return pool info with either
+		//       ID or tokenAddress. Or just decide which is better to use.
+		pools() {
 			return pageResults({
 				api: graphAPIEndpoints.masterchef,
 				query: {
@@ -74,70 +126,80 @@ module.exports = {
 				.catch(err => console.log(err));
 		},
 
-		TimeLocks() {
+		pool({ poolId = undefined }) {
+			// TODO: poolId must be a string, otherwise returns all of the pools if Num. Need to figure out how to support both types.
+			//       can also probably get rid of pools() above and just use the query to return both individual pools and all pools
 			return pageResults({
 				api: graphAPIEndpoints.masterchef,
 				query: {
-					entity: 'timelocks',
+					entity: 'masterChefPools',
 					selection: {
-						orderBy: 'createdBlock',
-						orderDirection: 'desc',
+						where: {
+							id: poolId ? `\\"${poolId}\\"` : undefined
+						}
 					},
 					properties: [
 						'id',
-						'value',
-						'eta',
-						'functionName',
-						'data',
-						'targetAddress',
-						'isCanceled',
-						'isExecuted',
-						'createdBlock',
-						'createdTs',
-						'expiresTs',
-						'canceledBlock',
-						'canceledTs',
-						'executedBlock',
-						'executedTs',
-						'createdTx',
-						'canceledTx',
-						'executedTx'
-					],
-				},
+						'balance',
+						'lpToken',
+						'allocPoint',
+						'lastRewardBlock',
+						'accSushiPerShare',
+						'addedBlock',
+						'addedTs'
+					]
+				}
 			})
 				.then(results =>
-					results.map(({ id, value, eta, functionName, data, targetAddress, isCanceled, isExecuted, createdBlock, createdTs, expiresTs, canceledBlock, canceledTs, executedBlock, executedTs, createdTx, canceledTx, executedTx }) => ({
-						txHash: id,
-						value: Number(value),
-						etaTs: Number(eta * 1000),
-						etaDate: new Date(eta * 1000),
-						functionName: functionName,
-						data: data,
-						targetAddress: targetAddress,
-						isCanceled: isCanceled,
-						isExecuted: isExecuted,
-						createdBlock: Number(createdBlock),
-						createdTs: Number(createdTs * 1000),
-						createdDate: new Date(createdTs * 1000),
-						expiresTs: Number(expiresTs * 1000),
-						expiresDate: new Date(expiresTs * 1000),
-						canceledBlock: Number(canceledBlock),
-						canceledTs: Number(canceledTs * 1000),
-						canceledDate: new Date(canceledTs * 1000),
-						executedBlock: Number(executedBlock),
-						executedTs: Number(executedTs * 1000),
-						executedDate: new Date(executedTs * 1000),
-						createdTx: createdTx,
-						canceledTx: canceledTx,
-						executedTx: executedTx
-					})),
+					results.map(({ id, balance, lpToken, allocPoint, lastRewardBlock, accSushiPerShare, addedBlock, addedTs }) => ({
+						id: Number(id),
+						balance: balance / 1e18,
+						lpToken: lpToken,
+						allocPoint: Number(allocPoint),
+						lastRewardBlock: Number(lastRewardBlock),
+						accSushiPerShare: accSushiPerShare / 1e18,
+						addedBlock: Number(addedBlock),
+						addedTs: Number(addedTs * 1000),
+						addedDate: new Date(addedTs * 1000)
+					}))
 				)
 				.catch(err => console.log(err));
 		},
-
+		stakedValue({ lpToken = undefined }) {
+			let chef_address = "0xc2edad668740f1aa35e4d8f227fb8e17dca888cd"
+			return pageResults({
+				api: graphAPIEndpoints.exchange,
+				query: {
+					entity: 'liquidityPositions',
+					selection: {
+						where: {
+							id: `\\"${lpToken.toLowerCase()}-${chef_address}\\"`
+						}
+					},
+					properties: [
+						'id',
+						'liquidityTokenBalance',
+						'pair { id, totalSupply, reserveETH, reserveUSD }'
+					]
+				}
+			})
+				.then(results =>
+					results.map(({ id, liquidityTokenBalance, pair }) => ({
+						// TODO: I don't think all of this info is necessary, we can get away
+						//       with just returning totalValueETH and totalValueUSD for this query
+						id: id,
+						liquidityTokenBalance: Number(liquidityTokenBalance),
+						totalSupply: Number(pair.totalSupply),
+						totalValueETH: Number(pair.reserveETH),
+						totalValueUSD: Number(pair.reserveUSD)
+					}))
+				)
+				.catch(err => console.log(err))
+		}
 	},
+
 	bar: {
-		Info() {
+		info() {
 			return pageResults({
 				api: graphAPIEndpoints.bar,
 				query: {
@@ -183,7 +245,7 @@ module.exports = {
 				.catch(err => console.log(err));
 		},
 
-		User({ user = undefined }) {
+		user({ user = undefined }) {
 			return pageResults({
 				api: graphAPIEndpoints.bar,
 				query: {
@@ -229,8 +291,9 @@ module.exports = {
 		},
 
 	},
+
 	maker: {
-		Info() {
+		info() {
 			return pageResults({
 				api: graphAPIEndpoints.maker,
 				query: {
@@ -250,7 +313,7 @@ module.exports = {
 				.catch(err => console.log(err));
 		},
 
-		Servings() {
+		servings() {
 			return pageResults({
 				api: graphAPIEndpoints.maker,
 				query: {
@@ -288,7 +351,7 @@ module.exports = {
 		},
 
 		// TODO: Add support for getting Server's history of Servings here
-		Servers() {
+		servers() {
 			return pageResults({
 				api: graphAPIEndpoints.maker,
 				query: {
@@ -312,8 +375,8 @@ module.exports = {
 				.catch(err => console.log(err));
 		},
 
-		PendingServings(maker_address = "0x6684977bbed67e101bb80fc07fccfba655c0a64f") {
-			console.log(maker_address)
+		pendingServings() {
+			let maker_address = "0x6684977bbed67e101bb80fc07fccfba655c0a64f"
 			return pageResults({
 				api: graphAPIEndpoints.exchange,
 				query: {
@@ -341,9 +404,10 @@ module.exports = {
 				.catch(err => console.log(err));
 		}
 	},
+
 	timelock: {
 		// TODO: We can probably split this up into QueuedTxs, CanceledTxs, and ExecutedTxs
-		Txs() {
+		txs() {
 			return pageResults({
 				api: graphAPIEndpoints.timelock,
 				query: {
@@ -405,4 +469,5 @@ module.exports = {
 				.catch(err => console.log(err));
 		}
 	},
+
 };
