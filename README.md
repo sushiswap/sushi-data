@@ -7,16 +7,19 @@ data has been indexed by the Graph via the subgraph the SushiSwap team maintains
 
 The below all return a Promise that resolves with the requested results.
 
-1. `masterchef.Info()` Get MasterChef Contract Info.
-2. `masterchef.Pools()` Get all pool info for pools in MasterChef.
-3. `masterchef.TimeLocks()` Get all queued TimLock Txs. ** Will be removed soon **
-4. `timelock.Txs()` Get all queued/executed/canceled Timelock txs.
-5. `bar.Info()` Get all SushiBar contract info.
-6. `bar.User({ user: "address"})` Get sushi bar data for specific address.
-7. `maker.Info()` Get SushiMaker contract info
-8. `maker.Servings()` Get all past servings to the bar.
-9. `maker.Servers()` Get all addresses that have served sushi to the bar.
-10. `maker.PendingServings()` Get all data on all of the servings that are ready to be served to the bar.
+1. `weth.price()` Gets current USDC price of WETH.
+2. `sushi.info()` Get sushi ETH price and total supply.
+3. `masterchef.info()` Get MasterChef Contract Info.
+4. `masterchef.pools()` Get all pool info for pools in MasterChef.
+5. `masterchef.pool()` Get pool info for a single pool in MasterChef.
+6. `masterchef.stakedValue()` Get pricing info for MasterChef pools
+7. `timelock.txs()` Get all queued/executed/canceled Timelock txs.
+8. `bar.info()` Get all SushiBar contract info.
+9. `bar.user({ user: "address"})` Get sushi bar data for specific address.
+10. `maker.info()` Get SushiMaker contract info
+11. `maker.servings()` Get all past servings to the bar.
+12. `maker.servers()` Get all addresses that have served sushi to the bar.
+13. `maker.pendingServings()` Get all data on all of the servings that are ready to be served to the bar.
 
 ## Example
 
