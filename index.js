@@ -91,7 +91,8 @@ module.exports = {
 				)
 				.catch(err => console.log(err));
 		},
-
+		// TODO: probably better to have a way for this to return pool info with either
+		//       ID or tokenAddress. Or just decide which is better to use.
 		pools() {
 			return pageResults({
 				api: graphAPIEndpoints.masterchef,
@@ -151,7 +152,7 @@ module.exports = {
 			})
 				.then(results =>
 					results.map(({ id, balance, lpToken, allocPoint, lastRewardBlock, accSushiPerShare, addedBlock, addedTs }) => ({
-						id: id,
+						id: Number(id),
 						balance: balance / 1e18,
 						lpToken: lpToken,
 						allocPoint: Number(allocPoint),
@@ -164,9 +165,6 @@ module.exports = {
 				)
 				.catch(err => console.log(err));
 		},
-		// TODO: this technically isn't completely right, it returns the balance
-		//       staked in the exchange regardless if in masterchef or not.
-		//       would rather this return values in masterChef
 		stakedValue({ lpToken = undefined }) {
 			let chef_address = "0xc2edad668740f1aa35e4d8f227fb8e17dca888cd"
 			return pageResults({
@@ -187,6 +185,8 @@ module.exports = {
 			})
 				.then(results =>
 					results.map(({ id, liquidityTokenBalance, pair }) => ({
+						// TODO: I don't think all of this info is necessary, we can get away
+						//       with just returning totalValueETH and totalValueUSD for this query
 						id: id,
 						liquidityTokenBalance: Number(liquidityTokenBalance),
 						totalSupply: Number(pair.totalSupply),
@@ -469,5 +469,5 @@ module.exports = {
 				.catch(err => console.log(err));
 		}
 	},
-	
+
 };
