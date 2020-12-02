@@ -4,11 +4,11 @@ const pageResults = require('graph-results-pager');
 
 // TODO: exchange will need to be replaced with new exchange subgraph once it's finished
 const graphAPIEndpoints = {
-	masterchef: 'https://api.thegraph.com/subgraphs/name/sushiswap/sushiswap',
+	masterchef: 'https://api.thegraph.com/subgraphs/name/sushiswap/master-chef',
 	bar: 'https://api.thegraph.com/subgraphs/name/sushiswap/sushi-bar',
 	timelock: 'https://api.thegraph.com/subgraphs/name/sushiswap/sushi-timelock',
 	maker: 'https://api.thegraph.com/subgraphs/name/sushiswap/sushi-maker',
-	exchange: 'https://api.thegraph.com/subgraphs/name/zippoxer/sushiswap-subgraph-fork'
+	exchange: 'https://api.thegraph.com/subgraphs/name/sushiswap/exchange'
 };
 
 module.exports = {
@@ -55,11 +55,11 @@ module.exports = {
 				}
 			})
 				// TODO: need to figure out to not return this is an arraay, rather just an object
-				.then(results =>
-					results.map(({ derivedETH, totalSupply }) => ({
+				.then(([{ derivedETH, totalSupply }]) =>
+					({
 						derivedETH: Number(derivedETH),
 						totalSupply: Number(totalSupply)
-					}))
+					})
 				)
 				.catch(err => console.log(err));
 		}
@@ -67,27 +67,54 @@ module.exports = {
 
 	masterchef: {
 		info() {
+			let mainnet_address = "0xc2edad668740f1aa35e4d8f227fb8e17dca888cd"
 			return pageResults({
 				api: graphAPIEndpoints.masterchef,
-				// Note: a single subgraph fetch can return 1000 results, any larger numbers will trigger multiple fetches
 				query: {
 					entity: 'masterChefs',
 					selection: {
 						where: {
-							id: "1",
+							id: `\\"${mainnet_address}\\"`,
 						}
 					},
 					properties: [
-						'totalAllocPoint',
-						'poolLength',
+				    'bonusMultiplier',
+				    'bonusEndBlock',
+				    'devaddr',
+				    'migrator',
+				    'owner',
+				    'startBlock',
+				    'sushi',
+				    'sushiPerBlock',
+				    'totalAllocPoint',
+				    'poolCount',
+				    'slpBalance',
+				    'slpAge',
+				    'slpAgeRemoved',
+				    'slpDeposited',
+				    'slpWithdrawn',
+				    'updatedAt'
 					],
 				},
 			})
-				.then(results =>
-					results.map(({ totalAllocPoint, poolLength }) => ({
-						totalAllocPoint: Number(totalAllocPoint),
-						poolLength: Number(poolLength)
-					})),
+				.then(([{ bonusMultiplier, bonusEndBlock, devaddr, migrator, owner, startBlock, sushi, sushiPerBlock, totalAllocPoint, poolCount, slpBalance, slpAge, slpAgeRemoved, slpDeposited, slpWithdrawn, updatedAt }]) =>
+					({
+						bonusMultiplier: Number(bonusMultiplier),
+				    bonusEndBlock: Number(bonusEndBlock),
+				    devaddr: devaddr,
+				    migrator: migrator,
+				    owner: owner,
+				    startBlock: Number(startBlock),
+				    sushiPerBlock: sushiPerBlock / 1e18,
+				    totalAllocPoint: Number(totalAllocPoint),
+				    poolCount: Number(poolCount),
+				    slpBalance: Number(slpBalance),
+				    slpAge: Number(slpAge),
+				    slpAgeRemoved: Number(slpAgeRemoved),
+				    slpDeposited: Number(slpDeposited),
+				    slpWithdrawn: Number(slpWithdrawn),
+				    updatedAt: Number(updatedAt)
+					})
 				)
 				.catch(err => console.log(err));
 		},
@@ -97,31 +124,53 @@ module.exports = {
 			return pageResults({
 				api: graphAPIEndpoints.masterchef,
 				query: {
-					entity: 'masterChefPools',
+					entity: 'pools',
 					properties: [
 						'id',
-						'balance',
-						'lpToken',
-						'allocPoint',
-						'lastRewardBlock',
-						'accSushiPerShare',
-						'addedBlock',
-						'addedTs',
+				    'pair',
+				    'allocPoint',
+				    'lastRewardBlock',
+				    'accSushiPerShare',
+				    'balance',
+				    'userCount',
+				    'slpBalance',
+				    'slpAge',
+				    'slpAgeRemoved',
+				    'slpDeposited',
+				    'slpWithdrawn',
+				    'timestamp',
+				    'block',
+				    'updatedAt',
+				    'entryUSD',
+				    'exitUSD',
+				    'sushiHarvested',
+				    'sushiHarvestedUSD'
 					],
 				},
 			})
 				.then(results =>
-					results.map(({ id, balance, lpToken, allocPoint, lastRewardBlock, accSushiPerShare, addedBlock, addedTs }) => ({
+					results.map(({ id, pair, allocPoint, lastRewardBlock, accSushiPerShare, balance, userCount, slpBalance, slpAge, slpAgeRemoved, slpDeposited, slpWithdrawn, timestamp, block, updatedAt, entryUSD, exitUSD, sushiHarvested, sushiHarvestedUSD }) => ({
 						id: Number(id),
-						balance: balance / 1e18,
-						lpToken: lpToken,
-						allocPoint: Number(allocPoint),
-						lastRewardBlock: Number(lastRewardBlock),
-						accSushiPerShare: accSushiPerShare / 1e18,
-						addedBlock: Number(addedBlock),
-						addedTs: Number(addedTs * 1000),
-						addedDate: new Date(addedTs * 1000)
-					})),
+				    pair: pair,
+				    allocPoint: Number(allocPoint),
+				    lastRewardBlock: Number(lastRewardBlock),
+				    accSushiPerShare: Number(accSushiPerShare),
+				    userCount: Number(userCount),
+				    slpBalance: Number(slpBalance),
+				    slpAge: Number(slpAge),
+				    slpAgeRemoved: Number(slpAgeRemoved),
+				    slpDeposited: Number(slpDeposited),
+				    slpWithdrawn: Number(slpWithdrawn),
+				    addedTs: Number(timestamp),
+						addedDate: new Date(timestamp * 1000),
+				    addedBlock: Number(block),
+				    lastUpdatedTs: Number(updatedAt),
+						lastUpdatedDate: new Date(updatedAt * 1000),
+				    entryUSD: Number(entryUSD),
+				    exitUSD: Number(exitUSD),
+				    sushiHarvested: Number(sushiHarvested),
+				    sushiHarvestedUSD: Number(sushiHarvestedUSD)
+ 					})),
 				)
 				.catch(err => console.log(err));
 		},
@@ -132,36 +181,56 @@ module.exports = {
 			return pageResults({
 				api: graphAPIEndpoints.masterchef,
 				query: {
-					entity: 'masterChefPools',
+					entity: 'pools',
 					selection: {
 						where: {
 							id: poolId ? `\\"${poolId}\\"` : undefined
 						}
 					},
 					properties: [
-						'id',
-						'balance',
-						'lpToken',
-						'allocPoint',
-						'lastRewardBlock',
-						'accSushiPerShare',
-						'addedBlock',
-						'addedTs'
+				    'pair',
+				    'allocPoint',
+				    'lastRewardBlock',
+				    'accSushiPerShare',
+				    'balance',
+				    'userCount',
+				    'slpBalance',
+				    'slpAge',
+				    'slpAgeRemoved',
+				    'slpDeposited',
+				    'slpWithdrawn',
+				    'timestamp',
+				    'block',
+				    'updatedAt',
+				    'entryUSD',
+				    'exitUSD',
+				    'sushiHarvested',
+				    'sushiHarvestedUSD'
 					]
 				}
 			})
-				.then(results =>
-					results.map(({ id, balance, lpToken, allocPoint, lastRewardBlock, accSushiPerShare, addedBlock, addedTs }) => ({
-						id: Number(id),
-						balance: balance / 1e18,
-						lpToken: lpToken,
-						allocPoint: Number(allocPoint),
-						lastRewardBlock: Number(lastRewardBlock),
-						accSushiPerShare: accSushiPerShare / 1e18,
-						addedBlock: Number(addedBlock),
-						addedTs: Number(addedTs * 1000),
-						addedDate: new Date(addedTs * 1000)
-					}))
+				.then(([{ pair, allocPoint, lastRewardBlock, accSushiPerShare, balance, userCount, slpBalance, slpAge, slpAgeRemoved, slpDeposited, slpWithdrawn, timestamp, block, updatedAt, entryUSD, exitUSD, sushiHarvested, sushiHarvestedUSD }]) =>
+					({
+				  	pair: pair,
+				    allocPoint: Number(allocPoint),
+				    lastRewardBlock: Number(lastRewardBlock),
+				    accSushiPerShare: Number(accSushiPerShare),
+				    userCount: Number(userCount),
+				    slpBalance: Number(slpBalance),
+				    slpAge: Number(slpAge),
+				    slpAgeRemoved: Number(slpAgeRemoved),
+				    slpDeposited: Number(slpDeposited),
+				    slpWithdrawn: Number(slpWithdrawn),
+				    addedTs: Number(timestamp),
+						addedDate: new Date(timestamp * 1000),
+				    addedBlock: Number(block),
+				    lastUpdatedTs: Number(updatedAt),
+						lastUpdatedDate: new Date(updatedAt * 1000),
+				    entryUSD: Number(entryUSD),
+				    exitUSD: Number(exitUSD),
+				    sushiHarvested: Number(sushiHarvested),
+				    sushiHarvestedUSD: Number(sushiHarvestedUSD)
+					})
 				)
 				.catch(err => console.log(err));
 		},
@@ -183,8 +252,8 @@ module.exports = {
 					]
 				}
 			})
-				.then(results =>
-					results.map(({ id, liquidityTokenBalance, pair }) => ({
+				.then(([{ id, liquidityTokenBalance, pair }]) =>
+					({
 						// TODO: I don't think all of this info is necessary, we can get away
 						//       with just returning totalValueETH and totalValueUSD for this query
 						id: id,
@@ -192,7 +261,7 @@ module.exports = {
 						totalSupply: Number(pair.totalSupply),
 						totalValueETH: Number(pair.reserveETH),
 						totalValueUSD: Number(pair.reserveUSD)
-					}))
+					})
 				)
 				.catch(err => console.log(err))
 		}
@@ -223,8 +292,8 @@ module.exports = {
 					]
 				}
 			})
-				.then(results =>
-					results.map(({ decimals, name, sushi, symbol, totalSupply, ratio, xSushiMinted, xSushiBurned, sushiStaked, sushiStakedUSD, sushiHarvested, sushiHarvestedUSD, xSushiAge, xSushiAgeDestroyed, updatedAt }) => ({
+				.then(([{ decimals, name, sushi, symbol, totalSupply, ratio, xSushiMinted, xSushiBurned, sushiStaked, sushiStakedUSD, sushiHarvested, sushiHarvestedUSD, xSushiAge, xSushiAgeDestroyed, updatedAt }]) =>
+				({
 						decimals: Number(decimals),
 						name: name,
 						sushi: sushi,
@@ -240,7 +309,7 @@ module.exports = {
 						xSushiAge: Number(xSushiAge),
 						xSushiAgeDestroyed: Number(xSushiAgeDestroyed),
 						updatedAt: Number(updatedAt)
-					}))
+					})
 				)
 				.catch(err => console.log(err));
 		},
@@ -279,13 +348,13 @@ module.exports = {
 					]
 				}
 			})
-				.then(results =>
-					results.map(({ bar, xSushi, xSushiIn, xSushiOut, xSushiMinted, xSushiBurned, xSushiOffset, xSushiAge, xSushiAgeDestroyed, sushiStaked, sushiStakedUSD, sushiHarvested, sushiHarvestedUSD, sushiOut, sushiIn, usdOut, usdIn, updatedAt, sushiOffset, usdOffset }) => ({
+				.then(([{ bar, xSushi, xSushiIn, xSushiOut, xSushiMinted, xSushiBurned, xSushiOffset, xSushiAge, xSushiAgeDestroyed, sushiStaked, sushiStakedUSD, sushiHarvested, sushiHarvestedUSD, sushiOut, sushiIn, usdOut, usdIn, updatedAt, sushiOffset, usdOffset }]) =>
+					({
 						// TODO: will need to figure out calculations for sushi earned and apy here once we figure out xSushi transfer issues in the subgraph
 						xSushi: Number(xSushi),
 						sushiStaked: xSushi * bar.ratio,
 						bar: bar
-					}))
+					})
 				)
 				.catch(err => console.log(err));
 		},
@@ -304,11 +373,11 @@ module.exports = {
 					]
 				}
 			})
-				.then(results =>
-					results.map(({ id, sushiServed }) => ({
+				.then(([{ id, sushiServed }]) =>
+					({
 						address: id,
 						sushiServed: Number(sushiServed)
-					}))
+					})
 				)
 				.catch(err => console.log(err));
 		},
@@ -376,12 +445,13 @@ module.exports = {
 		},
 
 		pendingServings() {
-			let maker_address = "0x6684977bbed67e101bb80fc07fccfba655c0a64f"
+			let maker_address = "0x280ac711bb99de7c73fb70fb6de29846d5e4207f"
 			return pageResults({
 				api: graphAPIEndpoints.exchange,
 				query: {
 					entity: 'users',
 					selection: {
+						// TODO: should add orderBy valueUSD
 						where: {
 							id: `\\"${maker_address}\\"`,
 						},
@@ -391,6 +461,7 @@ module.exports = {
 					]
 				}
 			})
+				// TODO: should make this a more friendly return format
 				.then(results =>
 					results.map(({ liquidityPositions }) => ({
 						servings: liquidityPositions.map(({ liquidityTokenBalance, pair }) => ({
