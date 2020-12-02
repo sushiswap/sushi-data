@@ -8,7 +8,8 @@ const graphAPIEndpoints = {
 	bar: 'https://api.thegraph.com/subgraphs/name/sushiswap/sushi-bar',
 	timelock: 'https://api.thegraph.com/subgraphs/name/sushiswap/sushi-timelock',
 	maker: 'https://api.thegraph.com/subgraphs/name/sushiswap/sushi-maker',
-	exchange: 'https://api.thegraph.com/subgraphs/name/sushiswap/exchange'
+	exchange: 'https://api.thegraph.com/subgraphs/name/sushiswap/exchange',
+	blocklytics: 'https://api.thegraph.com/subgraphs/name/blocklytics/ethereum-blocks'
 };
 
 module.exports = {
@@ -54,7 +55,6 @@ module.exports = {
 					]
 				}
 			})
-				// TODO: need to figure out to not return this is an arraay, rather just an object
 				.then(([{ derivedETH, totalSupply }]) =>
 					({
 						derivedETH: Number(derivedETH),
@@ -63,6 +63,41 @@ module.exports = {
 				)
 				.catch(err => console.log(err));
 		}
+	},
+
+	blocks: {
+		latestBlock() {
+			return pageResults({
+				api: graphAPIEndpoints.blocklytics,
+				query: {
+					entity: 'blocks',
+					selection: {
+						first: 1,
+						skip: 0,
+						orderBy: 'number',
+						orderDirection: 'desc',
+						where: {
+							number_gt: 11370252
+						}
+					},
+					properties: [
+						'id',
+						'number',
+						'timestamp'
+					]
+				}
+			})
+				.then(([{ id, number, timestamp }]) =>
+					({
+						id: id,
+						number: Number(number),
+						timestamp: Number(timestamp),
+						date: new Date(timestamp * 1000)
+					})
+				)
+				.catch(err => console.log(err));
+		},
+
 	},
 
 	masterchef: {
