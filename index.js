@@ -160,6 +160,10 @@ module.exports = {
 				api: graphAPIEndpoints.masterchef,
 				query: {
 					entity: 'pools',
+					selection: {
+						orderBy: 'block',
+						orderDirection: 'asc',
+					},
 					properties: [
 						'id',
 				    'pair',
@@ -189,7 +193,7 @@ module.exports = {
 				    pair: pair,
 				    allocPoint: Number(allocPoint),
 				    lastRewardBlock: Number(lastRewardBlock),
-				    accSushiPerShare: Number(accSushiPerShare),
+				    accSushiPerShare: accSushiPerShare / 1e18,
 				    userCount: Number(userCount),
 				    slpBalance: Number(slpBalance),
 				    slpAge: Number(slpAge),
@@ -249,7 +253,7 @@ module.exports = {
 				  	pair: pair,
 				    allocPoint: Number(allocPoint),
 				    lastRewardBlock: Number(lastRewardBlock),
-				    accSushiPerShare: Number(accSushiPerShare),
+				    accSushiPerShare: accSushiPerShare / 1e18,
 				    userCount: Number(userCount),
 				    slpBalance: Number(slpBalance),
 				    slpAge: Number(slpAge),
