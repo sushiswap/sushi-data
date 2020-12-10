@@ -8,18 +8,20 @@ data has been indexed by the Graph via the subgraph the SushiSwap team maintains
 The below all return a Promise that resolves with the requested results.
 
 1. `weth.price()` Gets current USDC price of WETH.
-2. `sushi.info()` Get sushi ETH price and total supply.
+2. `sushi.info(block)` Get sushi ETH price and total supply. Optional: can use block number to fetch data at a specific block.
 3. `masterchef.info()` Get MasterChef Contract Info.
-4. `masterchef.pools()` Get all pool info for pools in MasterChef.
-5. `masterchef.pool()` Get pool info for a single pool in MasterChef.
-6. `masterchef.stakedValue()` Get pricing info for MasterChef pools
-7. `timelock.txs()` Get all queued/executed/canceled Timelock txs.
-8. `bar.info()` Get all SushiBar contract info.
-9. `bar.user({ user: "address"})` Get sushi bar data for specific address.
-10. `maker.info()` Get SushiMaker contract info
-11. `maker.servings()` Get all past servings to the bar.
-12. `maker.servers()` Get all addresses that have served sushi to the bar.
-13. `maker.pendingServings()` Get all data on all of the servings that are ready to be served to the bar.
+4. `masterchef.pools(identifier)` Get all pool info for pools in MasterChef. Optional: can use identifier as argument - either pool id or pair address.
+5. `masterchef.stakedValue()` Get pricing info for MasterChef pools.
+6. `timelock.queuedTxs()` Get all queued Timelock txs.
+7. `timelock.canceledTxs()` Get all canceled Timelock txs.
+8. `timelock.executedTxs()` Get all executed Timelock txs.
+9. `timelock.txs()` Get all queued/executed/canceled Timelock txs.
+10. `bar.info()` Get all SushiBar contract info.
+11. `bar.user({ user: "address"})` Get sushi bar data for specific address.
+12. `maker.info()` Get SushiMaker contract info
+13. `maker.servings()` Get all past servings to the bar.
+14. `maker.servers()` Get all addresses that have served sushi to the bar.
+15. `maker.pendingServings()` Get all data on all of the servings that are ready to be served to the bar.
 
 ## Example
 

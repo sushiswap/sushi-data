@@ -36,9 +36,8 @@ module.exports = {
 				.catch(err => console.error(err))
 		}
 	},
-	// TODO: can add blockNumber as another parameter to this to get the price for any block
 	sushi: {
-		info() {
+		info(blockNumber) {
 			let sushi_address = "0x6b3595068778dd592e39a122f4f5a5cf09c90fe2"
 			return pageResults({
 				api: graphAPIEndpoints.exchange,
@@ -47,7 +46,8 @@ module.exports = {
 					selection: {
 						where: {
 							id: `\\"${sushi_address}\\"`
-						}
+						},
+						block: { number: blockNumber }
 					},
 					properties: [
 						'derivedETH',
@@ -153,9 +153,9 @@ module.exports = {
 				)
 				.catch(err => console.log(err));
 		},
-		// TODO: probably better to have a way for this to return pool info with either
-		//       ID or tokenAddress. Or just decide which is better to use.
-		pools() {
+		pools(identifier) {
+			identifier = String(identifier);
+			let where = identifier ? identifier.includes("x") ? { pair: `\\"${identifier}\\"`, } : { id: `\\"${identifier}\\"`, } : {};
 			return pageResults({
 				api: graphAPIEndpoints.masterchef,
 				query: {
@@ -163,6 +163,7 @@ module.exports = {
 					selection: {
 						orderBy: 'block',
 						orderDirection: 'asc',
+						where
 					},
 					properties: [
 						'id',
@@ -214,65 +215,6 @@ module.exports = {
 				.catch(err => console.log(err));
 		},
 
-		pool({ poolId = undefined }) {
-			// TODO: poolId must be a string, otherwise returns all of the pools if Num. Need to figure out how to support both types.
-			//       can also probably get rid of pools() above and just use the query to return both individual pools and all pools
-			return pageResults({
-				api: graphAPIEndpoints.masterchef,
-				query: {
-					entity: 'pools',
-					selection: {
-						where: {
-							id: poolId ? `\\"${poolId}\\"` : undefined
-						}
-					},
-					properties: [
-				    'pair',
-				    'allocPoint',
-				    'lastRewardBlock',
-				    'accSushiPerShare',
-				    'balance',
-				    'userCount',
-				    'slpBalance',
-				    'slpAge',
-				    'slpAgeRemoved',
-				    'slpDeposited',
-				    'slpWithdrawn',
-				    'timestamp',
-				    'block',
-				    'updatedAt',
-				    'entryUSD',
-				    'exitUSD',
-				    'sushiHarvested',
-				    'sushiHarvestedUSD'
-					]
-				}
-			})
-				.then(([{ pair, allocPoint, lastRewardBlock, accSushiPerShare, balance, userCount, slpBalance, slpAge, slpAgeRemoved, slpDeposited, slpWithdrawn, timestamp, block, updatedAt, entryUSD, exitUSD, sushiHarvested, sushiHarvestedUSD }]) =>
-					({
-				  	pair: pair,
-				    allocPoint: Number(allocPoint),
-				    lastRewardBlock: Number(lastRewardBlock),
-				    accSushiPerShare: accSushiPerShare / 1e18,
-				    userCount: Number(userCount),
-				    slpBalance: Number(slpBalance),
-				    slpAge: Number(slpAge),
-				    slpAgeRemoved: Number(slpAgeRemoved),
-				    slpDeposited: Number(slpDeposited),
-				    slpWithdrawn: Number(slpWithdrawn),
-				    addedTs: Number(timestamp),
-						addedDate: new Date(timestamp * 1000),
-				    addedBlock: Number(block),
-				    lastUpdatedTs: Number(updatedAt),
-						lastUpdatedDate: new Date(updatedAt * 1000),
-				    entryUSD: Number(entryUSD),
-				    exitUSD: Number(exitUSD),
-				    sushiHarvested: Number(sushiHarvested),
-				    sushiHarvestedUSD: Number(sushiHarvestedUSD)
-					})
-				)
-				.catch(err => console.log(err));
-		},
 		stakedValue({ lpToken = undefined }) {
 			let chef_address = "0xc2edad668740f1aa35e4d8f227fb8e17dca888cd"
 			return pageResults({
@@ -458,7 +400,6 @@ module.exports = {
 				.catch(err => console.log(err));
 		},
 
-		// TODO: Add support for getting Server's history of Servings here
 		servers() {
 			return pageResults({
 				api: graphAPIEndpoints.maker,
@@ -470,14 +411,21 @@ module.exports = {
 					},
 					properties: [
 						'id',
-						'sushiServed'
+						'sushiServed',
+						'servings { tx, block, pair, sushiServed }'
 					]
 				}
 			})
 				.then(results =>
-					results.map(({ id, sushiServed }) => ({
+					results.map(({ id, sushiServed, servings }) => ({
 						serverAddress: id,
-						sushiServed: Number(sushiServed)
+						sushiServed: Number(sushiServed),
+						servings: servings.map(({ tx, block, pair, sushiServed}) => ({
+							tx,
+							block: Number(block),
+							pair,
+							sushiServed: Number(sushiServed)
+						})),
 					}))
 				)
 				.catch(err => console.log(err));
@@ -490,7 +438,6 @@ module.exports = {
 				query: {
 					entity: 'users',
 					selection: {
-						// TODO: should add orderBy valueUSD
 						where: {
 							id: `\\"${maker_address}\\"`,
 						},
@@ -500,23 +447,178 @@ module.exports = {
 					]
 				}
 			})
-				// TODO: should make this a more friendly return format
-				.then(results =>
-					results.map(({ liquidityPositions }) => ({
-						servings: liquidityPositions.map(({ liquidityTokenBalance, pair }) => ({
+				.then(results => 
+					results[0].liquidityPositions.map(({ liquidityTokenBalance, pair }) => ({
 							address: pair.id,
 							token0: pair.token0,
 							token1: pair.token1,
 							valueUSD: (liquidityTokenBalance / pair.totalSupply) * pair.reserveUSD
-						})),
-					}))
+					})).sort((a, b) => b.valueUSD - a.valueUSD)
 				)
 				.catch(err => console.log(err));
 		}
 	},
 
-	timelock: {
-		// TODO: We can probably split this up into QueuedTxs, CanceledTxs, and ExecutedTxs
+	timelock: {		
+		queuedTxs() {
+			return pageResults({
+				api: graphAPIEndpoints.timelock,
+				query: {
+					entity: 'timelocks',
+					selection: {
+						orderBy: 'createdBlock',
+						orderDirection: 'desc',
+						where: {
+							isCanceled: false,
+							isExecuted: false
+						}
+					},
+					properties: [
+						'id',
+						'description',
+						'value',
+						'eta',
+						'functionName',
+						'data',
+						'targetAddress',
+						'createdBlock',
+						'createdTs',
+						'expiresTs',
+						'createdTx',
+					]
+				}
+			})
+				.then(results =>
+					results.map(({ id, description, value, eta, functionName, data, targetAddress, createdBlock, createdTs, expiresTs, createdTx }) => ({
+						txHash: id,
+						description: description,
+						value: Number(value),
+						etaTs: Number(eta * 1000),
+						etaDate: new Date(eta * 1000),
+						functionName: functionName,
+						data: data,
+						targetAddress: targetAddress,
+						createdBlock: Number(createdBlock),
+						createdTs: Number(createdTs * 1000),
+						createdDate: new Date(createdTs * 1000),
+						expiresTs: Number(expiresTs * 1000),
+						expiresDate: new Date(expiresTs * 1000),
+						createdTx: createdTx,
+					})),
+				)
+				.catch(err => console.log(err));
+		},
+
+		canceledTxs() {
+			return pageResults({
+				api: graphAPIEndpoints.timelock,
+				query: {
+					entity: 'timelocks',
+					selection: {
+						orderBy: 'createdBlock',
+						orderDirection: 'desc',
+						where: {
+							isCanceled: true
+						}
+					},
+					properties: [
+						'id',
+						'description',
+						'value',
+						'eta',
+						'functionName',
+						'data',
+						'targetAddress',
+						'createdBlock',
+						'createdTs',
+						'expiresTs',
+						'canceledBlock',
+						'canceledTs',
+						'createdTx',
+						'canceledTx',
+					]
+				}
+			})
+				.then(results =>
+					results.map(({ id, description, value, eta, functionName, data, targetAddress, createdBlock, createdTs, expiresTs, canceledBlock, canceledTs, createdTx, canceledTx }) => ({
+						txHash: id,
+						description: description,
+						value: Number(value),
+						etaTs: Number(eta * 1000),
+						etaDate: new Date(eta * 1000),
+						functionName: functionName,
+						data: data,
+						targetAddress: targetAddress,
+						createdBlock: Number(createdBlock),
+						createdTs: Number(createdTs * 1000),
+						createdDate: new Date(createdTs * 1000),
+						expiresTs: Number(expiresTs * 1000),
+						expiresDate: new Date(expiresTs * 1000),
+						canceledBlock: canceledTx ? Number(canceledBlock) : null,
+						canceledTs: canceledTx ? Number(canceledTs * 1000) : null,
+						canceledDate: canceledTx ? new Date(canceledTs * 1000) : null,
+						createdTx: createdTx,
+						canceledTx: canceledTx,
+					})),
+				)
+				.catch(err => console.log(err));
+		},
+
+		executedTxs() {
+			return pageResults({
+				api: graphAPIEndpoints.timelock,
+				query: {
+					entity: 'timelocks',
+					selection: {
+						orderBy: 'createdBlock',
+						orderDirection: 'desc',
+						where: {
+							isExecuted: true
+						}
+					},
+					properties: [
+						'id',
+						'description',
+						'value',
+						'eta',
+						'functionName',
+						'data',
+						'targetAddress',
+						'createdBlock',
+						'createdTs',
+						'expiresTs',
+						'executedBlock',
+						'executedTs',
+						'createdTx',
+						'executedTx'
+					]
+				}
+			})
+				.then(results =>
+					results.map(({ id, description, value, eta, functionName, data, targetAddress, createdBlock, createdTs, expiresTs, executedBlock, executedTs, createdTx, executedTx }) => ({
+						txHash: id,
+						description: description,
+						value: Number(value),
+						etaTs: Number(eta * 1000),
+						etaDate: new Date(eta * 1000),
+						functionName: functionName,
+						data: data,
+						targetAddress: targetAddress,
+						createdBlock: Number(createdBlock),
+						createdTs: Number(createdTs * 1000),
+						createdDate: new Date(createdTs * 1000),
+						expiresTs: Number(expiresTs * 1000),
+						expiresDate: new Date(expiresTs * 1000),
+						executedBlock: executedTx ? Number(executedBlock) : null,
+						executedTs: executedTx ? Number(executedTs * 1000) : null,
+						executedDate: executedTx ? new Date(executedTs * 1000) : null,
+						createdTx: createdTx,
+						executedTx: executedTx
+					})),
+				)
+				.catch(err => console.log(err));
+		},
+
 		txs() {
 			return pageResults({
 				api: graphAPIEndpoints.timelock,
