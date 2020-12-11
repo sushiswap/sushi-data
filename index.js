@@ -2,6 +2,9 @@
 
 const pageResults = require('graph-results-pager');
 
+const ws = require('ws');
+const { SubscriptionClient } = require('subscriptions-transport-ws'); 
+
 // TODO: exchange will need to be replaced with new exchange subgraph once it's finished
 const graphAPIEndpoints = {
 	masterchef: 'https://api.thegraph.com/subgraphs/name/sushiswap/master-chef',
@@ -11,6 +14,10 @@ const graphAPIEndpoints = {
 	exchange: 'https://api.thegraph.com/subgraphs/name/sushiswap/exchange',
 	blocklytics: 'https://api.thegraph.com/subgraphs/name/blocklytics/ethereum-blocks'
 };
+
+const graphWSEndpoints = {
+	exchange: 'wss://api.thegraph.com/subgraphs/name/sushiswap/exchange',
+}
 
 module.exports = {
 	pageResults,
@@ -139,6 +146,48 @@ module.exports = {
 					return token_address ? results[0] : results
 				})
 				.catch(err => console.log(err))
+		},
+
+		observeToken(token_address) {
+			let query = token_address ? 
+				`subscription { token(id: \"${token_address.toLowerCase()}\")` :
+				`subscription { tokens(first: 1000, orderBy: volumeUSD, orderDirection: desc)`
+			query += `{ id, symbol, name, decimals, totalSupply, volume, volumeUSD, txCount, liquidity, derivedETH}}`
+
+			const client = new SubscriptionClient(
+				graphWSEndpoints.exchange,
+				{
+					reconnect: true,
+				},
+				ws,
+			);
+				console.log(query)
+			const observable = client.request({
+				query
+			});
+			
+			return {
+				subscribe({next, error, complete}) {
+					return observable.subscribe({
+						next({ data }) {
+							next(!token_address ? data.tokens.map(({ id, symbol, name, decimals, totalSupply, volume, volumeUSD, txCount, liquidity, derivedETH }) => ({
+								id: id,
+								symbol: symbol,
+								name: name,
+								decimals: Number(decimals),
+								totalSupply: Number(totalSupply),
+								volume: Number(volume),
+								volumeUSD: Number(volumeUSD),
+								txCount: Number(txCount),
+								liquidity: Number(liquidity),
+								derivedETH: Number(derivedETH)
+							})) : data)
+						},
+						error,
+						complete
+					})
+				}
+			}
 		},
 
 		pairs(pair_address) {
