@@ -33,6 +33,12 @@ The below all return a Promise that resolves with the requested results.
 20. `exchange.dayData(days)` Get all data for the SushiSwap factory broken down by day.  
     Optional: can use number of days to fetch data for a specific number of days (1 for today's data only, 2 for today and yesterday).
 
+## Supported Subscriptions
+The below all return an Observable that when subscribed to with an object.
+
+1. `exchanges.observeTokens(token_address)` Get an observable to subscribe to that will next all token data updates in real time.  
+Optional: can use token address to observe data for specific token.
+
 ## Example
 
 ```javascript

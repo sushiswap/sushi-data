@@ -148,7 +148,7 @@ module.exports = {
 				.catch(err => console.log(err))
 		},
 
-		observeToken(token_address) {
+		observeTokens(token_address) {
 			let query = token_address ? 
 				`subscription { token(id: \"${token_address.toLowerCase()}\")` :
 				`subscription { tokens(first: 1000, orderBy: volumeUSD, orderDirection: desc)`
