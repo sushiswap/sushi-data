@@ -99,6 +99,189 @@ module.exports = {
 		},
 
 	},
+	exchange: {
+		tokens(token_address) {
+			let where = token_address ? { id: `\\"${token_address.toLowerCase()}\\"` } : {}
+			return pageResults({
+				api: graphAPIEndpoints.exchange,
+				query: {
+					entity: 'tokens',
+					selection: {
+						where,
+					},
+					properties: [
+						'id',
+						'symbol',
+						'name',
+						'decimals',
+						'totalSupply',
+						'volume',
+						'volumeUSD',
+						'txCount',
+						'liquidity',
+						'derivedETH'
+					],
+				},
+			})
+				.then(results => {
+					results = results.map(({ id, symbol, name, decimals, totalSupply, volume, volumeUSD, txCount, liquidity, derivedETH }) => ({
+						id: id,
+						symbol: symbol,
+						name: name,
+						decimals: Number(decimals),
+						totalSupply: Number(totalSupply),
+						volume: Number(volume),
+						volumeUSD: Number(volumeUSD),
+						txCount: Number(txCount),
+						liquidity: Number(liquidity),
+						derivedETH: Number(derivedETH)
+					}))
+					return token_address ? results[0] : results
+				})
+				.catch(err => console.log(err))
+		},
+
+		pairs(pair_address) {
+			let where = pair_address ? { id: `\\"${pair_address.toLowerCase()}\\"` } : {}
+			return pageResults({
+				api: graphAPIEndpoints.exchange,
+				query: {
+					entity: 'pairs',
+					selection: {
+						orderBy: 'volumeUSD',
+						orderDirection: 'desc',
+						where,
+					},
+					properties: [
+						'id',
+						'token0 { id }',
+						'token1 { id }',
+						'reserve0',
+						'reserve1',
+						'totalSupply',
+						'reserveETH',
+						'reserveUSD',
+						'trackedReserveETH',
+						'token0Price',
+						'token1Price',
+						'volumeToken0',
+						'volumeToken1',
+						'volumeUSD',
+						'untrackedVolumeUSD',
+						'txCount',
+					],
+				},
+			})
+				.then(reserves => {
+					reserves = reserves.map(({ id, token0, token1, reserve0, reserve1, totalSupply, reserveETH, reserveUSD, trackedReserveETH, token0Price, token1Price, volumeToken0, volumeToken1, volumeUSD, untrackedVolumeUSD, txCount }) => ({
+						id: id,
+						token0: token0.id,
+						token1: token1.id,
+						reserve0: Number(reserve0),
+						reserve1: Number(reserve1),
+						totalSupply: Number(totalSupply),
+						reserveETH: Number(reserveETH),
+						reserveUSD: Number(reserveUSD),
+						trackedReserveETH: Number(trackedReserveETH),
+						token0Price: Number(token0Price),
+						token1Price: Number(token1Price),
+						volumeToken0: Number(volumeToken0),
+						volumeToken1: Number(volumeToken1),
+						volumeUSD: Number(volumeUSD),
+						untrackedVolumeUSD: Number(untrackedVolumeUSD),
+						txCount: Number(txCount),
+					}))
+					return pair_address ? reserves[0] : reserves
+				})
+				.catch(err => console.log(err))
+		},
+
+		ethPrice() {
+			return pageResults({
+				api: graphAPIEndpoints.exchange,
+				query: {
+					entity: 'bundles',
+					properties: [
+						'ethPrice'
+					],
+				},
+			})
+				.then(([{ ethPrice }]) => Number(ethPrice))
+				.catch(err => console.log(err))
+		},
+
+		factory() {
+			let factory_address = "0xc0aee478e3658e2610c5f7a4a2e1777ce9e4f2ac";
+			return pageResults({
+				api: graphAPIEndpoints.exchange,
+				query: {
+					entity: 'factories',
+					selection: {
+						where: {
+							id: `\\"${factory_address}\\"`,
+						},
+					},
+					properties: [
+						'pairCount',
+						'volumeUSD',
+						'volumeETH',
+						'untrackedVolumeUSD',
+						'liquidityUSD',
+						'liquidityETH',
+						'txCount',
+						'tokenCount',
+						'userCount',
+					],
+				},
+			})
+				.then(([{ pairCount, volumeUSD, volumeETH, untrackedVolumeUSD, liquidityUSD, liquidityETH, txCount, tokenCount, userCount }]) => ({
+					pairCount: Number(pairCount),
+					volumeUSD: Number(volumeUSD),
+					volumeETH: Number(volumeETH),
+					untrackedVolumeUSD: Number(untrackedVolumeUSD),
+					liquidityUSD: Number(liquidityUSD),
+					liquidityETH: Number(liquidityETH),
+					txCount: Number(txCount),
+					tokenCount: Number(tokenCount),
+					userCount: Number(userCount),
+				}))
+				.catch(err => console.log(err))
+		},
+
+		dayData(days) {
+			return pageResults({
+				api: graphAPIEndpoints.exchange,
+				query: {
+					entity: 'dayDatas',
+					selection: {
+						orderBy: 'date', 
+						orderDirection: 'desc'
+					},
+					properties: [
+						'id',
+						'date',
+						'volumeETH',
+						'volumeUSD',
+						'liquidityETH',
+						'liquidityUSD',
+						'txCount'
+					]
+				}
+			})
+				.then(results => {
+					return results.map(({ id, date, volumeETH, volumeUSD, liquidityETH, liquidityUSD, txCount }) => ({
+						id: Number(id),
+						date: new Date(date * 1000),
+						volumeETH: Number(volumeETH),
+						volumeUSD: Number(volumeUSD),
+						liquidityETH: Number(liquidityETH),
+						liquidityUSD: Number(liquidityUSD),
+						txCount: Number(txCount),
+					})).slice(0, days) // Can't fetch an N number of days directly because graph-results-pager overrides the first value
+				})
+				.catch(err => console.log(err))
+		},
+	},
 
 	masterchef: {
 		info() {
