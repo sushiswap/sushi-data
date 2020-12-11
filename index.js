@@ -2,7 +2,7 @@
 
 const pageResults = require('graph-results-pager');
 
-const ws = require('ws');
+const ws = require('isomorphic-ws');
 const { SubscriptionClient } = require('subscriptions-transport-ws'); 
 
 // TODO: exchange will need to be replaced with new exchange subgraph once it's finished
