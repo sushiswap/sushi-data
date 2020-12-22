@@ -52,9 +52,9 @@ The below all return an Observable that when subscribed to with an object.
 ## Example
 
 ```javascript
-const sushiData = require('sushi-data'); // common js
+const sushiData = require('@sushiswap/sushi-data'); // common js
 // or
-import sushiData from 'sushi-data'; // es modules
+import sushiData from '@sushiswap/sushi-data'; // es modules
 
 // query and log resolved results
 sushiData.masterchef
