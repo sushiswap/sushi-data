@@ -32,7 +32,7 @@ The below all return a Promise that resolves with the requested results.
 22. `timelock.executedTxs({²})` Get executed Timelock transactions.
 23. `timelock.allTxs({²})` Get all Timelock transactions.
 
-¹ `{block, timestamp}` Supports fetching at a specific block / UNIX timestamp.
+¹ `{block, timestamp}` Supports fetching at a specific block / UNIX timestamp.    
 ² `{minBlock, maxBlock, minTimestamp, maxTimestamp}` Supports fetching in a specific timeframe.
 
 ## Supported Subscriptions

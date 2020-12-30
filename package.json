@@ -10,6 +10,7 @@
 		"prepublish": "npm run pack"
 	},
 	"dependencies": {
+		"bluebird": "^3.7.2",
 		"commander": "6.1.0",
 		"csv-stringify": "5.3.3",
 		"graph-results-pager": "~1.0.0",
