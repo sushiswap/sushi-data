@@ -285,13 +285,14 @@ const tokens = {
         'totalSupply',
         'volume',
         'volumeUSD',
+        'untrackedVolumeUSD',
         'txCount',
         'liquidity',
         'derivedETH'
     ],
 
     callback(results) {
-        return results.map(({ id, symbol, name, decimals, totalSupply, volume, volumeUSD, txCount, liquidity, derivedETH }) => ({
+        return results.map(({ id, symbol, name, decimals, totalSupply, volume, volumeUSD, untrackedVolumeUSD, txCount, liquidity, derivedETH }) => ({
             id: id,
             symbol: symbol,
             name: name,
@@ -299,6 +300,7 @@ const tokens = {
             totalSupply: Number(totalSupply),
             volume: Number(volume),
             volumeUSD: Number(volumeUSD),
+            untrackedVolumeUSD: Number(untrackedVolumeUSD),
             txCount: Number(txCount),
             liquidity: Number(liquidity),
             derivedETH: Number(derivedETH)
@@ -309,8 +311,8 @@ const tokens = {
 const pairs = {
     properties: [
         'id',
-        'token0 { id }',
-        'token1 { id }',
+        'token0 { id, name, symbol, totalSupply, derivedETH }',
+        'token1 { id, name, symbol, totalSupply, derivedETH }',
         'reserve0',
         'reserve1',
         'totalSupply',
@@ -327,23 +329,35 @@ const pairs = {
     ],
 
     callback(results) {
-        return results.map(({ id, token0, token1, reserve0, reserve1, totalSupply, reserveETH, reserveUSD, trackedReserveETH, token0Price, token1Price, volumeToken0, volumeToken1, volumeUSD, untrackedVolumeUSD, txCount }) => ({
-            id: id,
-            token0: token0.id,
-            token1: token1.id,
-            reserve0: Number(reserve0),
-            reserve1: Number(reserve1),
-            totalSupply: Number(totalSupply),
-            reserveETH: Number(reserveETH),
-            reserveUSD: Number(reserveUSD),
-            trackedReserveETH: Number(trackedReserveETH),
-            token0Price: Number(token0Price),
-            token1Price: Number(token1Price),
-            volumeToken0: Number(volumeToken0),
-            volumeToken1: Number(volumeToken1),
-            volumeUSD: Number(volumeUSD),
-            untrackedVolumeUSD: Number(untrackedVolumeUSD),
-            txCount: Number(txCount),
+        return results.map(entry => ({
+            id: entry.id,
+            token0: { 
+                id: entry.token0.id,
+                name: entry.token0.name,
+                symbol: entry.token0.symbol,
+                totalSupply: Number(entry.token0.totalSupply),
+                derivedETH: Number(entry.token0.derivedETH),
+            },
+            token1: { 
+                id: entry.token1.id,
+                name: entry.token1.name,
+                symbol: entry.token1.symbol,
+                totalSupply: Number(entry.token1.totalSupply),
+                derivedETH: Number(entry.token1.derivedETH),
+            },
+            reserve0: Number(entry.reserve0),
+            reserve1: Number(entry.reserve1),
+            totalSupply: Number(entry.totalSupply),
+            reserveETH: Number(entry.reserveETH),
+            reserveUSD: Number(entry.reserveUSD),
+            trackedReserveETH: Number(entry.trackedReserveETH),
+            token0Price: Number(entry.token0Price),
+            token1Price: Number(entry.token1Price),
+            volumeToken0: Number(entry.volumeToken0),
+            volumeToken1: Number(entry.volumeToken1),
+            volumeUSD: Number(entry.volumeUSD),
+            untrackedVolumeUSD: Number(entry.untrackedVolumeUSD),
+            txCount: Number(entry.txCount),
         }));
     }
 }

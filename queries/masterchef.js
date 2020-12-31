@@ -82,6 +82,26 @@ module.exports = {
         );
 
         return stakedValue.callback(result.liquidityPosition);
+    },
+
+    async user({block = undefined, timestamp = undefined, user_address = undefined} = {}) {
+        if(!user_address) { throw new Error("sushi-data: User address undefined"); }
+
+        return pageResults({
+            api: graphAPIEndpoints.masterchef,
+            query: {
+                entity: 'users',
+                selection: {
+                    where: {
+                        address: `\\"${user_address}\\"`
+                    },
+                    block: block ? { number: block } : timestamp ? { number: await timestampToBlock(timestamp) } : undefined,
+                },
+                properties: user.properties
+            }
+        })
+            .then(results => user.callback(results))
+            .catch(err => console.log(err));
     }
 }
 
@@ -190,5 +210,45 @@ const stakedValue = {
             totalValueETH: Number(results.pair.reserveETH),
             totalValueUSD: Number(results.pair.reserveUSD)
         })
+    }
+};
+
+const user = {
+    properties: [
+        'id',
+        'address',
+        'pool { id, pair, balance, accSushiPerShare, lastRewardBlock }',
+        'amount',
+        'rewardDebt',
+        'entryUSD',
+        'exitUSD',
+        'sushiAtLockup',
+        'sushiHarvested',
+        'sushiHarvestedUSD',
+        'sushiHarvestedSinceLockup',
+        'sushiHarvestedSinceLockupUSD',
+    ],
+
+    callback(results) {
+        return results.map(entry => ({
+            id: entry.id,
+            address: entry.address,
+            pool: {
+                id: entry.pool.id,
+                pair: entry.pool.pair,
+                balance: Number(entry.pool.balance),
+                accSushiPerShare: Number(entry.pool.accSushiPerShare),
+                lastRewardBlock: Number(entry.pool.lastRewardBlock)
+            },
+            amount: Number(entry.amount),
+            rewardDebt: Number(entry.rewardDebt),
+            entryUSD: Number(entry.entryUSD),
+            exitUSD: Number(entry.exitUSD),
+            sushiAtLockup: Number(entry.sushiAtLockup),
+            sushiHarvested: Number(entry.sushiHarvested),
+            sushiHarvestedUSD: Number(entry.sushiHarvestedUSD),
+            sushiHarvestedSinceLockup: Number(entry.sushiHarvestedSinceLockup),
+            sushiHarvestedSinceLockupUSD: Number(entry.sushiHarvestedSinceLockupUSD)
+        }));
     }
 };

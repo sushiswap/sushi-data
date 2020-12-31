@@ -9,10 +9,12 @@ const { graphAPIEndpoints } = require('./constants')
 const sushi = require('./queries/sushi');
 const blocks = require('./queries/blocks');
 const exchange = require('./queries/exchange');
+const exchangev1 = require('./queries/exchangev1')
 const masterchef = require('./queries/masterchef');
 const bar = require('./queries/bar')
 const maker = require('./queries/maker')
 const timelock =  require('./queries/timelock');
+const lockup = require('./queries/lockup')
 
 module.exports = {
 	pageResults,
@@ -20,10 +22,12 @@ module.exports = {
 	sushi,
 	blocks,
 	exchange,
+	exchangev1,
 	masterchef,
 	bar,
 	maker,
 	timelock,
+	lockup,
 	async timeseries({blocks = undefined, timestamps = undefined, target = undefined} = {}, targetArguments) {
 		if(!target) { throw new Error("sushi-data: Target function undefined"); }
 		if(!blocks && !timestamps) { throw new Error("sushi-data: Timeframe undefined"); }
