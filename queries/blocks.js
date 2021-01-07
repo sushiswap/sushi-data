@@ -4,6 +4,7 @@ const { SubscriptionClient } = require('subscriptions-transport-ws');
 const { request, gql } = require('graphql-request');
 
 const { graphAPIEndpoints, graphWSEndpoints } = require('./../constants')
+const { timestampToBlock } = require('./../utils')
 
 module.exports = {
     async latestBlock() {
@@ -40,6 +41,21 @@ module.exports = {
                 })
             }
         };
+    },
+
+    async getBlock({block = undefined, timestamp = undefined} = {}) {
+        block = block ? block : timestamp ? (await timestampToBlock(timestamp)) : undefined;
+        block = block ? `block: { number: ${block} }` : "";
+
+        const result = await request(graphAPIEndpoints.blocklytics,
+            gql`{
+                blocks(first: 1, orderBy: number, orderDirection: desc, ${block}) {
+                    ${getBlock.properties.toString()}
+                }
+            }`
+        );
+
+        return getBlock.callback(result.blocks[0]);
     }
 }
 
@@ -59,3 +75,27 @@ const latestBlock = {
         });
     }
 };
+
+const getBlock = {
+    properties: [
+        'id',
+        'number',
+        'timestamp',
+        'author',
+        'difficulty',
+        'gasUsed',
+        'gasLimit'
+    ],
+
+    callback(results) {
+        return ({
+            id: results.id,
+            number: Number(results.number),
+            timestamp: Number(results.timestamp),
+            author: results.author,
+            difficulty: Number(results.difficulty),
+            gasUsed: Number(results.gasUsed),
+            gasLimit: Number(results.gasLimit)
+        })
+    }
+}
