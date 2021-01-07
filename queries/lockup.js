@@ -9,7 +9,7 @@ const { graphAPIEndpoints, graphWSEndpoints } = require('./../constants')
 const { timestampToBlock } = require('./../utils')
 
 module.exports = {
-    async users({block = undefined, timestamp = undefined, user_address = undefined} = {}) {
+    async user({block = undefined, timestamp = undefined, user_address = undefined} = {}) {
         return pageResults({
             api: graphAPIEndpoints.lockup,
             query: {
@@ -20,15 +20,15 @@ module.exports = {
                     },
                 },
                 block: block ? { number: block } : timestamp ? { number: await timestampToBlock(timestamp) } : undefined,
-                properties: users.properties
+                properties: user.properties
             }
         })
-            .then(results => users.callback(results))
+            .then(results => user.callback(results))
             .catch(err => console.log(err));
     }
 }
 
-const users = {
+const user = {
     properties: [
         'id',
         'address',
