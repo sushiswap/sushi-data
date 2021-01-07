@@ -2,6 +2,8 @@ const { request, gql } = require('graphql-request');
 const blocklytics = 'https://api.thegraph.com/subgraphs/name/blocklytics/ethereum-blocks';
 
 async function timestampToBlock(timestamp) {
+    timestamp = String(timestamp).length > 10 ? Math.floor(timestamp / 1000) : timestamp;
+
     const result = await request(blocklytics,
         gql`{
             blocks(first: 1, orderBy: timestamp, where: { timestamp_gte: ${timestamp} }) {
