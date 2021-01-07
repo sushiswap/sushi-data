@@ -16,7 +16,7 @@ module.exports = {
                 entity: 'users',
                 selection: {
                     where: {
-                        address: `\\"${user_address}\\"`
+                        address: `\\"${user_address.toLowerCase()}\\"`
                     },
                 },
                 block: block ? { number: block } : timestamp ? { number: await timestampToBlock(timestamp) } : undefined,
