@@ -24,7 +24,7 @@ module.exports = {
         return info.callback(result.makers[0]);
     },
 
-    servings({minTimestamp = undefined, maxTimestamp = undefined, minBlock = undefined, maxBlock = undefined} = {}) {
+    servings({minTimestamp = undefined, maxTimestamp = undefined, minBlock = undefined, maxBlock = undefined, max = undefined} = {}) {
         return pageResults({
             api: graphAPIEndpoints.maker,
             query: {
@@ -40,13 +40,14 @@ module.exports = {
                     }
                 },
                 properties: servings.properties
-            }
+            },
+            max
         })
         .then(results => servings.callback(results))
         .catch(err => console.log(err));
     },
 
-    async servers({block = undefined, timestamp = undefined} = {}) {
+    async servers({block = undefined, timestamp = undefined, max = undefined} = {}) {
         return pageResults({
             api: graphAPIEndpoints.maker,
             query: {
@@ -57,13 +58,14 @@ module.exports = {
                 },
                 block: block ? { number: block } : timestamp ? { number: await timestampToBlock(timestamp) } : undefined,
                 properties: servers.properties
-            }
+            },
+            max
         })
             .then(results => servers.callback(results))
             .catch(err => console.log(err));        
     },
 
-    async pendingServings({block = undefined, timestamp = undefined} = {}) {
+    async pendingServings({block = undefined, timestamp = undefined, max = undefined} = {}) {
         return pageResults({
             api: graphAPIEndpoints.exchange,
             query: {
@@ -75,7 +77,8 @@ module.exports = {
                 },
                 block: block ? { number: block } : timestamp ? { number: await timestampToBlock(timestamp) } : undefined,
                 properties: pendingServings.properties
-            }
+            },
+            max
         })
             .then(results => pendingServings.callback(results))
             .catch(err => console.log(err));

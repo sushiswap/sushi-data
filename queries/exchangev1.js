@@ -9,7 +9,7 @@ const { graphAPIEndpoints, graphWSEndpoints } = require('./../constants')
 const { timestampToBlock } = require('./../utils')
 
 module.exports = {
-    userHistory({minTimestamp = undefined, maxTimestamp = undefined, minBlock = undefined, maxBlock = undefined, user_address = undefined} = {}) {
+    userHistory({minTimestamp = undefined, maxTimestamp = undefined, minBlock = undefined, maxBlock = undefined, user_address = undefined, max = undefined} = {}) {
         if(!user_address) { throw new Error("sushi-data: User address undefined"); }
 
         return pageResults({
@@ -26,7 +26,8 @@ module.exports = {
                     },
                 },
                 properties: userHistory.properties
-            }
+            },
+            max
         })
             .then(results => userHistory.callback(results))
             .catch(err => console.log(err));

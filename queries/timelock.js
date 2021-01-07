@@ -4,7 +4,7 @@ const { graphAPIEndpoints } = require('./../constants');
 const { timestampToBlock } = require('./../utils');
 
 module.exports = {		    
-    async queuedTxs({minTimestamp = undefined, maxTimestamp = undefined, minBlock = undefined, maxBlock = undefined} = {}) {
+    async queuedTxs({minTimestamp = undefined, maxTimestamp = undefined, minBlock = undefined, maxBlock = undefined, max = undefined} = {}) {
         return pageResults({
             api: graphAPIEndpoints.timelock,
             query: {
@@ -20,13 +20,14 @@ module.exports = {
                     }
                 },
                 properties: queuedTxs.properties
-            }
+            },
+            max
         })
             .then(results => queuedTxs.callback(results))
             .catch(err => console.log(err));
     },
 
-    async canceledTxs({minTimestamp = undefined, maxTimestamp = undefined, minBlock = undefined, maxBlock = undefined} = {}) {
+    async canceledTxs({minTimestamp = undefined, maxTimestamp = undefined, minBlock = undefined, maxBlock = undefined, max = undefined} = {}) {
         return pageResults({
             api: graphAPIEndpoints.timelock,
             query: {
@@ -41,13 +42,14 @@ module.exports = {
                     },
                 },
                 properties: canceledTxs.properties
-            }
+            },
+            max
         })
             .then(results => canceledTxs.callback(results))
             .catch(err => console.log(err));
     },
 
-    async executedTxs({minTimestamp = undefined, maxTimestamp = undefined, minBlock = undefined, maxBlock = undefined} = {}) {
+    async executedTxs({minTimestamp = undefined, maxTimestamp = undefined, minBlock = undefined, maxBlock = undefined, max = undefined} = {}) {
         return pageResults({
             api: graphAPIEndpoints.timelock,
             query: {
@@ -62,13 +64,14 @@ module.exports = {
                     }
                 },
                 properties: executedTxs.properties
-            }
+            },
+            max
         })
             .then(results => executedTxs.callback(results))
             .catch(err => console.log(err));
     },
 
-    async allTxs({minTimestamp = undefined, maxTimestamp = undefined, minBlock = undefined, maxBlock = undefined} = {}) {
+    async allTxs({minTimestamp = undefined, maxTimestamp = undefined, minBlock = undefined, maxBlock = undefined, max = undefined} = {}) {
         return pageResults({
             api: graphAPIEndpoints.timelock,
             query: {
@@ -82,7 +85,8 @@ module.exports = {
                     },
                 },
                 properties: allTxs.properties
-            }
+            },
+            max
         })
             .then(results => allTxs.callback(results))
             .catch(err => console.log(err));
