@@ -5,7 +5,7 @@ const { SubscriptionClient } = require('subscriptions-transport-ws');
 
 const { request, gql } = require('graphql-request');
 
-const { graphAPIEndpoints, graphWSEndpoints } = require('./../constants')
+const { graphAPIEndpoints, graphWSEndpoints, factoryAddress } = require('./../constants')
 const { timestampToBlock, blockToTimestamp } = require('./../utils');
 
 module.exports = {
@@ -224,7 +224,7 @@ module.exports = {
 
         const result = await request(graphAPIEndpoints.exchange,
             gql`{
-                    factory(id: "0xc0aee478e3658e2610c5f7a4a2e1777ce9e4f2ac", ${block}) {
+                    factory(id: "${factoryAddress}", ${block}) {
                         ${factory.properties.toString()}
                     }
                 }`
@@ -236,7 +236,7 @@ module.exports = {
     observeFactory() {
         const query = gql`
             subscription {
-                factory(id: "0xc0aee478e3658e2610c5f7a4a2e1777ce9e4f2ac") {
+                factory(id: "${factoryAddress}") {
                     ${factory.properties.toString()}
                 }
         }`;
