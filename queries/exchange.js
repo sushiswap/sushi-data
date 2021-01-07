@@ -52,7 +52,7 @@ module.exports = {
         };
     },
 
-    async tokens({block = undefined, timestamp = undefined} = {}) {
+    async tokens({block = undefined, timestamp = undefined, max = undefined} = {}) {
         return pageResults({
             api: graphAPIEndpoints.exchange,
             query: {
@@ -63,7 +63,8 @@ module.exports = {
                 },
                 block: block ? { number: block } : timestamp ? { number: await timestampToBlock(timestamp) } : undefined,
                 properties: tokens.properties
-            }
+            },
+            max
         })
             .then(results => tokens.callback(results))
             .catch(err => console.log(err));
@@ -136,7 +137,7 @@ module.exports = {
         };
     },
 
-    async pairs({block = undefined, timestamp = undefined} = {}) {
+    async pairs({block = undefined, timestamp = undefined, max = undefined} = {}) {
         return pageResults({
             api: graphAPIEndpoints.exchange,
             query: {
@@ -147,7 +148,8 @@ module.exports = {
                 },
                 block: block ? { number: block } : timestamp ? { number: await timestampToBlock(timestamp) } : undefined,
                 properties: pairs.properties
-            }
+            },
+            max
         })
             .then(results => pairs.callback(results))
             .catch(err => console.log(err));
