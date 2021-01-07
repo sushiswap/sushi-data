@@ -2,7 +2,7 @@ const pageResults = require('graph-results-pager');
 
 const { request, gql } = require('graphql-request');
 
-const { graphAPIEndpoints } = require('./../constants')
+const { graphAPIEndpoints, chefAddress } = require('./../constants')
 const { timestampToBlock } = require('./../utils');
 
 module.exports = {
@@ -12,7 +12,7 @@ module.exports = {
 
         const result = await request(graphAPIEndpoints.masterchef,
             gql`{
-                    masterChef(id: "0xc2edad668740f1aa35e4d8f227fb8e17dca888cd", ${block}) {
+                    masterChef(id: "${chefAddress}", ${block}) {
                         ${info.properties.toString()}
                     }
                 }`
@@ -75,7 +75,7 @@ module.exports = {
 
         const result = await request(graphAPIEndpoints.exchange,
             gql`{
-                    liquidityPosition(id: "${token_address.toLowerCase()}-0xc2edad668740f1aa35e4d8f227fb8e17dca888cd", ${block}) {
+                    liquidityPosition(id: "${token_address.toLowerCase()}-${chefAddress}", ${block}) {
                         ${stakedValue.properties.toString()}
                     }
                 }`

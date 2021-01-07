@@ -5,7 +5,7 @@ const { SubscriptionClient } = require('subscriptions-transport-ws');
 
 const { request, gql } = require('graphql-request');
 
-const { graphAPIEndpoints, graphWSEndpoints } = require('./../constants')
+const { graphAPIEndpoints, graphWSEndpoints, makerAddress } = require('./../constants')
 const { timestampToBlock } = require('./../utils')
 
 module.exports = {
@@ -72,7 +72,7 @@ module.exports = {
                 entity: 'users',
                 selection: {
                     where: {
-                        id: `\\"0x280ac711bb99de7c73fb70fb6de29846d5e4207f\\"`,
+                        id: `\\"${makerAddress}\\"`,
                     },
                 },
                 block: block ? { number: block } : timestamp ? { number: await timestampToBlock(timestamp) } : undefined,
@@ -87,7 +87,7 @@ module.exports = {
     observePendingServings() {
         const query = gql`
             subscription {
-                users(first: 1000, where: {id: "0x280ac711bb99de7c73fb70fb6de29846d5e4207f"}) {
+                users(first: 1000, where: {id: "${makerAddress}"}) {
                     ${pendingServings.properties.toString()}
                 }
         }`;

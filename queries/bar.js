@@ -3,7 +3,7 @@ const { SubscriptionClient } = require('subscriptions-transport-ws');
 
 const { request, gql } = require('graphql-request');
 
-const { graphAPIEndpoints, graphWSEndpoints } = require('./../constants')
+const { graphAPIEndpoints, graphWSEndpoints, barAddress } = require('./../constants')
 const { timestampToBlock } = require('./../utils');
 
 module.exports = {
@@ -13,7 +13,7 @@ module.exports = {
 
         const result = await request(graphAPIEndpoints.bar,
             gql`{
-                    bar(id: "0x8798249c2e607446efb7ad49ec89dd1865ff4272", ${block}) {
+                    bar(id: "${barAddress}", ${block}) {
                         ${info.properties.toString()}
                     }
                 }`
@@ -25,7 +25,7 @@ module.exports = {
     observeInfo() {
         const query = gql`
             subscription {
-                bar(id: "0x8798249c2e607446efb7ad49ec89dd1865ff4272") {
+                bar(id: "${barAddress}") {
                     ${info.properties.toString()}
                 }
         }`;

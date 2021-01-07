@@ -14,5 +14,10 @@ module.exports = {
         bar: 'wss://api.thegraph.com/subgraphs/name/sushiswap/sushi-bar',
         exchange: 'wss://api.thegraph.com/subgraphs/name/sushiswap/exchange',
         blocklytics: 'wss://api.thegraph.com/subgraphs/name/blocklytics/ethereum-blocks'
-    }
+    },
+
+    barAddress: "0x8798249c2e607446efb7ad49ec89dd1865ff4272",
+    makerAddress: "0x95c69c3220b31b843f1cf20bee5c53fcde7fc12e",
+    chefAddress: "0xc2edad668740f1aa35e4d8f227fb8e17dca888cd",
+    sushiAddress: "0x6b3595068778dd592e39a122f4f5a5cf09c90fe2"
 }

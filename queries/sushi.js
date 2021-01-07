@@ -5,19 +5,18 @@ const { SubscriptionClient } = require('subscriptions-transport-ws');
 
 const { gql } = require('graphql-request');
 
-const { graphAPIEndpoints, graphWSEndpoints } = require('./../constants')
+const { graphAPIEndpoints, graphWSEndpoints, sushiAddress } = require('./../constants')
 const { timestampToBlock } = require('./../utils')
 
 module.exports = {
     async price({block = undefined, timestamp = undefined} = {}) {
-        let sushi_token = "0x6b3595068778dd592e39a122f4f5a5cf09c90fe2"
         return pageResults({
             api: graphAPIEndpoints.exchange,
             query: {
                 entity: 'tokens',
                 selection: {
                     where: {
-                        id: `\\"${sushi_token}\\"`,
+                        id: `\\"${sushiAddress}\\"`,
                     },
                     block: block ? { number: block } : timestamp ? { number: await timestampToBlock(timestamp) } : undefined,
                 },
@@ -31,7 +30,7 @@ module.exports = {
     observePrice() {
         const query = gql`
             subscription {
-                    token(id: "0x6b3595068778dd592e39a122f4f5a5cf09c90fe2") {
+                    token(id: "${sushiAddress}") {
                         derivedETH
                     }
         }`;
