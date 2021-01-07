@@ -5,15 +5,15 @@ const { SubscriptionClient } = require('subscriptions-transport-ws');
 
 const { request, gql } = require('graphql-request');
 
-const { graphAPIEndpoints, graphWSEndpoints } = require('./../constants')
-const { timestampToBlock } = require('./../utils')
+const { graphAPIEndpoints, graphWSEndpoints } = require('../constants')
+const { timestampToBlock } = require('../utils')
 
 module.exports = {
     userHistory({minTimestamp = undefined, maxTimestamp = undefined, minBlock = undefined, maxBlock = undefined, user_address = undefined, max = undefined} = {}) {
         if(!user_address) { throw new Error("sushi-data: User address undefined"); }
 
         return pageResults({
-            api: graphAPIEndpoints.exchangev1,
+            api: graphAPIEndpoints.exchange_v1,
             query: {
                 entity: 'liquidityPositionSnapshots',
                 selection: {
@@ -37,7 +37,7 @@ module.exports = {
         if(!user_address) { throw new Error("sushi-data: User address undefined"); }
 
         return pageResults({
-            api: graphAPIEndpoints.exchangev1,
+            api: graphAPIEndpoints.exchange_v1,
             query: {
                 entity: 'liquidityPositions',
                 selection: {

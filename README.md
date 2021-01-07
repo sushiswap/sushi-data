@@ -17,8 +17,8 @@ The below all return a Promise that resolves with the requested results.
 7. `exchange.ethPrice({¹})` Gets USD price of ETH.
 8. `exchange.factory({¹})` Gets all data for the SushiSwap factory.
 9. `exchange.dayData({²})` Gets data for the SushiSwap factory broken down by day.
-10. `exchangev1.userHistory({², user_address})` Gets LP history for specified user.
-11. `exchangev1.userPositions({¹, user_address})` Gets LP positions for specified user.
+10. `exchange_v1.userHistory({², user_address})` Gets LP history for specified user.
+11. `exchange_v1.userPositions({¹, user_address})` Gets LP positions for specified user.
 12. `masterchef.info({¹})` Gets MasterChef contract info.
 13. `masterchef.pool({¹, pool_id, pool_address})` Gets pool info, either by pool id or by pool address.
 14. `masterchef.pools({¹})` Gets pool info for all pools in MasterChef.

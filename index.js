@@ -9,7 +9,7 @@ const { graphAPIEndpoints } = require('./constants')
 const sushi = require('./queries/sushi');
 const blocks = require('./queries/blocks');
 const exchange = require('./queries/exchange');
-const exchangev1 = require('./queries/exchangev1')
+const exchange_v1 = require('./queries/exchange_v1')
 const masterchef = require('./queries/masterchef');
 const bar = require('./queries/bar')
 const maker = require('./queries/maker')
@@ -22,7 +22,7 @@ module.exports = {
 	sushi,
 	blocks,
 	exchange,
-	exchangev1,
+	exchange_v1,
 	masterchef,
 	bar,
 	maker,
