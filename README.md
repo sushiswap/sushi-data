@@ -7,7 +7,6 @@ data has been indexed by the Graph via the subgraph the SushiSwap team maintains
 
 The below all return a Promise that resolves with the requested results.
 
-
 1. `sushi.price({¹})` Gets ETH price of Sushi.
 2. `blocks.latestBlock()` Gets the latest block.
 3. `blocks.getBlock({¹})` Gets data for the specified block.
