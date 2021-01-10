@@ -82,5 +82,5 @@ sushiData.exchange
   .subscribe({next: (pairs) => console.log(pairs), error: (err) => console.log(err)})
 
 sushiData
-  .timeseries({blocks: [11407623, 11507623, 11607623], target: sushiData.exchange.pair}, {pair_address: ""})
+  .timeseries({blocks: [11407623, 11507623, 11607623], target: sushiData.exchange.pair}, {pair_address: "0x795065dCc9f64b5614C407a6EFDC400DA6221FB0"})
 ```
