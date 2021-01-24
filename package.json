@@ -3,8 +3,7 @@
 	"license": "MIT",
 	"version": "1.0.3",
 	"author": "SushiSwap",
-	"main": "index.js",
-	"typings": "./typings/index.d.ts",
+	"main": "index",
 	"scripts": {
 		"lint": "eslint .",
 		"pack": "webpack --mode production",
