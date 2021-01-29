@@ -53,8 +53,16 @@ export function servers({ block, timestamp, max }?: {
 
 type PendingServings = {
     address: string,
-    token0: string,
-    token1: string,
+    token0: {
+        id: string,
+        name: string,
+        symbol: string
+    },
+    token1: {
+        id: string,
+        name: string,
+        symbol: string
+    },
     valueUSD: number
 }
 
