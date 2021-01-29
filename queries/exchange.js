@@ -7,6 +7,7 @@ const { request, gql } = require('graphql-request');
 
 const { graphAPIEndpoints, graphWSEndpoints, factoryAddress } = require('./../constants')
 const { timestampToBlock, blockToTimestamp } = require('./../utils');
+const blocks = require('./blocks')
 
 module.exports = {
     async token({block = undefined, timestamp = undefined, token_address = undefined} = {}) {
@@ -276,6 +277,35 @@ module.exports = {
         .then(results => dayData.callback(results))
         .catch(err => console.log(err));
     },
+
+    async twentyFourHourData({block = undefined, timestamp = undefined} = {}) {
+        timestamp = timestamp ? timestamp : block ? await blockToTimestamp(block) : (Date.now() / 1000)
+        timestamp24ago = timestamp - 86400;
+
+        block = await timestampToBlock(timestamp);
+        block24ago = await timestampToBlock(timestamp24ago);
+
+        block = `block: { number: ${block} }`;
+        block24ago = `block: { number: ${block24ago} }`;
+
+        const result = await request(graphAPIEndpoints.exchange,
+            gql`{
+                    factory(id: "${factoryAddress}", ${block}) {
+                        ${twentyFourHourData.properties.toString()}
+                    }
+                }`
+        );
+
+        const result24ago = await request(graphAPIEndpoints.exchange,
+            gql`{
+                    factory(id: "${factoryAddress}", ${block24ago}) {
+                        ${twentyFourHourData.properties.toString()}
+                    }
+                }`
+        );
+
+        return twentyFourHourData.callback(result.factory, result24ago.factory);
+    } 
 }
 
 const tokens = {
@@ -425,3 +455,29 @@ const dayData = {
         }));
     }
 };
+
+const twentyFourHourData = {
+    properties: [
+        'id',
+        'volumeUSD',
+        'volumeETH',
+        'untrackedVolumeUSD',
+        'liquidityUSD',
+        'liquidityETH',
+        'txCount',
+        'pairCount'
+    ],
+
+    callback(results, results24ago) {
+        return ({
+            id: results.id,
+            volumeUSD: Number(results.volumeUSD) - Number(results24ago.volumeUSD),
+            volumeETH: Number(results.volumeETH) - Number(results24ago.volumeETH),
+            untrackedVolumeUSD: Number(results.untrackedVolumeUSD) - Number(results24ago.untrackedVolumeUSD),
+            liquidityETH: Number(results.liquidityETH) - Number(results24ago.liquidityETH),
+            liquidityUSD: Number(results.liquidityUSD) - Number(results24ago.liquidityUSD),
+            txCount: Number(results.txCount) - Number(results24ago.txCount),
+            pairCount: Number(results.pairCount) - Number(results24ago.pairCount)
+        })
+    }
+}

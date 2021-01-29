@@ -154,7 +154,7 @@ const servers = {
     properties: [
         'id',
         'sushiServed',
-        'servings { tx, block, pair, sushiServed }'
+        'servings(first: 1000, orderBy: block, orderDirection: desc) { tx, block, pair, sushiServed }'
     ],
 
     callback(results) {
@@ -173,10 +173,11 @@ const servers = {
 
 const pendingServings = {
     properties: [
-        'liquidityPositions { id, liquidityTokenBalance, pair { id, totalSupply, reserveUSD, token0 { id, name, symbol }, token1 { id, symbol, name } } }'
+        'liquidityPositions(first: 1000) { id, liquidityTokenBalance, pair { id, totalSupply, reserveUSD, token0 { id, name, symbol }, token1 { id, symbol, name } } }'
     ],
 
     callback(results) {
+        console.log(results[0].liquidityPositions.length)
         return results[0].liquidityPositions.map(({ liquidityTokenBalance, pair }) => ({
             address: pair.id,
             token0: pair.token0,
