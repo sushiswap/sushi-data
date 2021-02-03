@@ -177,7 +177,6 @@ const pendingServings = {
     ],
 
     callback(results) {
-        console.log(results[0].liquidityPositions.length)
         return results[0].liquidityPositions.map(({ liquidityTokenBalance, pair }) => ({
             address: pair.id,
             token0: pair.token0,
