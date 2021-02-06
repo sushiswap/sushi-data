@@ -5,6 +5,9 @@ const { request, gql } = require('graphql-request');
 const { graphAPIEndpoints, chefAddress } = require('./../constants')
 const { timestampToBlock } = require('./../utils');
 
+const { pairs: exchangePairs } = require('./exchange');
+const { priceUSD: sushiPriceUSD } = require('./sushi');
+
 module.exports = {
     async info({block = undefined, timestamp = undefined} = {}) {
         block = block ? block : timestamp ? (await timestampToBlock(timestamp)) : undefined;
@@ -102,6 +105,27 @@ module.exports = {
         })
             .then(results => user.callback(results))
             .catch(err => console.log(err));
+    },
+
+    async apys({block = undefined, timestamp = undefined} = {}) {
+        const masterchefList = await module.exports.pools({block, timestamp});
+        const exchangeList = await exchangePairs({block, timestamp});
+        const sushiUSD = await sushiPriceUSD({block, timestamp});
+
+        const totalAllocPoint = masterchefList.reduce((a, b) => a + b.allocPoint, 0);
+
+        return masterchefList.map(masterchefPool => {
+            const exchangePool = exchangeList.find(e => e.id === masterchefPool.pair);
+            if(!exchangePool) {
+                return {...masterchefPool, apy: 0};
+            }
+
+            const tvl = masterchefPool.slpBalance * (exchangePool.reserveUSD / exchangePool.totalSupply);
+            const sushiPerBlock = (masterchefPool.allocPoint / (totalAllocPoint) * 100);
+            const apy = sushiUSD * (sushiPerBlock * (60 / 13) * 60 * 24 * 365) / tvl * 100 * 3; // *3 => vesting
+
+            return {...masterchefPool, apy};
+        });
     }
 }
 
