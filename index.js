@@ -14,7 +14,8 @@ const masterchef = require('./queries/masterchef');
 const bar = require('./queries/bar')
 const maker = require('./queries/maker')
 const timelock =  require('./queries/timelock');
-const lockup = require('./queries/lockup')
+const lockup = require('./queries/lockup');
+const utils = require('./utils');
 
 module.exports = {
 	pageResults,
@@ -28,6 +29,7 @@ module.exports = {
 	maker,
 	timelock,
 	lockup,
+	utils,
 	async timeseries({blocks = undefined, timestamps = undefined, target = undefined} = {}, targetArguments) {
 		if(!target) { throw new Error("sushi-data: Target function undefined"); }
 		if(!blocks && !timestamps) { throw new Error("sushi-data: Timeframe undefined"); }

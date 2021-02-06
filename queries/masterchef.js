@@ -3,7 +3,7 @@ const pageResults = require('graph-results-pager');
 const { request, gql } = require('graphql-request');
 
 const { graphAPIEndpoints, chefAddress } = require('./../constants')
-const { timestampToBlock } = require('./../utils');
+const { timestampToBlock, getAverageBlockTime } = require('./../utils');
 
 const { pairs: exchangePairs } = require('./exchange');
 const { priceUSD: sushiPriceUSD } = require('./sushi');
@@ -114,6 +114,8 @@ module.exports = {
 
         const totalAllocPoint = masterchefList.reduce((a, b) => a + b.allocPoint, 0);
 
+        const averageBlockTime = await getAverageBlockTime({block, timestamp});
+
         return masterchefList.map(masterchefPool => {
             const exchangePool = exchangeList.find(e => e.id === masterchefPool.pair);
             if(!exchangePool) {
@@ -122,7 +124,7 @@ module.exports = {
 
             const tvl = masterchefPool.slpBalance * (exchangePool.reserveUSD / exchangePool.totalSupply);
             const sushiPerBlock = (masterchefPool.allocPoint / (totalAllocPoint) * 100);
-            const apy = sushiUSD * (sushiPerBlock * (60 / 13) * 60 * 24 * 365) / tvl * 100 * 3; // *3 => vesting
+            const apy = sushiUSD * (sushiPerBlock * (60 / averageBlockTime) * 60 * 24 * 365) / tvl * 100 * 3; // *3 => vesting
 
             return {...masterchefPool, apy};
         });
