@@ -1,11 +1,16 @@
 type Price = number;
 
-export function price({ block, timestamp }?: {
+export function priceUSD({ block, timestamp }?: {
     block?: number;
     timestamp?: number;
 }): Promise<Price>;
 
-export function observePrice(): {
+export function priceETH({ block, timestamp }?: {
+    block?: number;
+    timestamp?: number;
+}): Promise<Price>;
+
+export function observePriceETH(): {
     subscribe({ next, error, complete }: {
         next?(data: Price): any;
         error?(error: any): any;

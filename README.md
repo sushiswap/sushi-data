@@ -7,35 +7,37 @@ data has been indexed by the Graph via the subgraph the SushiSwap team maintains
 
 The below all return a Promise that resolves with the requested results.
 
-1. `sushi.price({¹})` Gets ETH price of Sushi.
-2. `blocks.latestBlock()` Gets the latest block.
-3. `blocks.getBlock({¹})` Gets data for the specified block.
-4. `exchange.token({¹, token_address})` Gets data for specified token.
-5. `exchange.tokens({¹})` Gets data for all tokens.
-6. `exchange.pair({¹, pair_address})` Gets data for specified pair.
-7. `exchange.pairs({¹})` Gets data for all pairs.
-8. `exchange.ethPrice({¹})` Gets USD price of ETH.
-9. `exchange.factory({¹})` Gets all data for the SushiSwap factory.
-10. `exchange.dayData({²})` Gets data for the SushiSwap factory broken down by day.
-11. `exchange.twentyFourHourData({¹})` Gets 24h data for the SushiSwap factory.
-12. `exchange_v1.userHistory({², user_address})` Gets LP history for specified user.
-13. `exchange_v1.userPositions({¹, user_address})` Gets LP positions for specified user.
-14. `masterchef.info({¹})` Gets MasterChef contract info.
-15. `masterchef.pool({¹, pool_id, pool_address})` Gets pool info, either by pool id or by pool address.
-16. `masterchef.pools({¹})` Gets pool info for all pools in MasterChef.
-17. `masterchef.user({¹, user_address})` Gets all pools user has stake in.
-18. `exchange.stakedValue({¹, token_address})` Get pricing info for MasterChef pool.
-19. `bar.info({¹})` Gets SushiBar contract info.
-20. `bar.user({¹, user_address})` Gets SushiBar data for specified user.
-21. `maker.info({¹})` Gets SushiMaker contract info.
-22. `maker.servings({²})` Gets past servings to the bar.
-23. `maker.servers({¹})` Gets servers that have served Sushi to the bar.
-24. `maker.pendingServings({¹})` Gets data on the servings ready to be served to the bar.
-25. `timelock.queuedTxs({²})` Gets queued Timelock transactions.
-26. `timelock.canceledTxs({²})` Gets canceled Timelock transactions.
-27. `timelock.executedTxs({²})` Gets executed Timelock transactions.
-28. `timelock.allTxs({²})` Gets all Timelock transactions.
-29. `lockup.user({¹, user_address})` Gets lockup data for specified user.
+1. `sushi.priceETH({¹})` Gets ETH price of Sushi.
+2. `sushi.priceUSD({¹})` Gets USD price of Sushi.
+3. `blocks.latestBlock()` Gets the latest block.
+4. `blocks.getBlock({¹})` Gets data for the specified block.
+5. `exchange.token({¹, token_address})` Gets data for specified token.
+6. `exchange.tokens({¹})` Gets data for all tokens.
+7. `exchange.pair({¹, pair_address})` Gets data for specified pair.
+8. `exchange.pairs({¹})` Gets data for all pairs.
+9. `exchange.ethPrice({¹})` Gets USD price of ETH.
+10. `exchange.factory({¹})` Gets all data for the SushiSwap factory.
+11. `exchange.dayData({²})` Gets data for the SushiSwap factory broken down by day.
+12. `exchange.twentyFourHourData({¹})` Gets 24h data for the SushiSwap factory.
+13. `exchange_v1.userHistory({², user_address})` Gets LP history for specified user.
+14. `exchange_v1.userPositions({¹, user_address})` Gets LP positions for specified user.
+15. `masterchef.info({¹})` Gets MasterChef contract info.
+16. `masterchef.pool({¹, pool_id, pool_address})` Gets pool info, either by pool id or by pool address.
+17. `masterchef.pools({¹})` Gets pool info for all pools in MasterChef.
+18. `masterchef.user({¹, user_address})` Gets all pools user has stake in.
+19. `masterchef.apys({¹})` Gets pool info for all pools in MasterChef including APYs.
+20. `exchange.stakedValue({¹, token_address})` Get pricing info for MasterChef pool.
+21. `bar.info({¹})` Gets SushiBar contract info.
+22. `bar.user({¹, user_address})` Gets SushiBar data for specified user.
+23. `maker.info({¹})` Gets SushiMaker contract info.
+24. `maker.servings({²})` Gets past servings to the bar.
+25. `maker.servers({¹})` Gets servers that have served Sushi to the bar.
+26. `maker.pendingServings({¹})` Gets data on the servings ready to be served to the bar.
+27. `timelock.queuedTxs({²})` Gets queued Timelock transactions.
+28. `timelock.canceledTxs({²})` Gets canceled Timelock transactions.
+29. `timelock.executedTxs({²})` Gets executed Timelock transactions.
+30. `timelock.allTxs({²})` Gets all Timelock transactions.
+31. `lockup.user({¹, user_address})` Gets lockup data for specified user.
 
 ¹ `{block, timestamp}` Supports fetching at a specific block / UNIX timestamp.    
 ² `{minBlock, maxBlock, minTimestamp, maxTimestamp}` Supports fetching in a specific timeframe.
@@ -43,7 +45,7 @@ The below all return a Promise that resolves with the requested results.
 ## Supported Subscriptions
 The below all return an Observable that when subscribed to with an object.
 
-1. `sushi.observePrice()` Gets an observable of the current ETH price of Sushi.
+1. `sushi.observePriceETH()` Gets an observable of the current ETH price of Sushi.
 2. `blocks.observeLatestBlock()` Gets an observable of the latest block.
 3. `exchange.observeToken({token_address})` Gets an observable for specified token.
 4. `exchange.observeTokens()` Gets an observable for the top 1000 tokens (by volume in USD).

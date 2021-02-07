@@ -8,8 +8,14 @@ const { gql } = require('graphql-request');
 const { graphAPIEndpoints, graphWSEndpoints, sushiAddress } = require('./../constants')
 const { timestampToBlock } = require('./../utils')
 
+const { ethPrice } = require('./exchange')
+
 module.exports = {
-    async price({block = undefined, timestamp = undefined} = {}) {
+    async priceUSD({block = undefined, timestamp = undefined} = {}) {
+        return (await ethPrice({block, timestamp}) * (await module.exports.priceETH({block, timestamp})));
+    },
+
+    async priceETH({block = undefined, timestamp = undefined} = {}) {
         return pageResults({
             api: graphAPIEndpoints.exchange,
             query: {
@@ -20,14 +26,14 @@ module.exports = {
                     },
                     block: block ? { number: block } : timestamp ? { number: await timestampToBlock(timestamp) } : undefined,
                 },
-                properties: price.properties,
+                properties: priceETH.properties,
             }
         })
-            .then(results => price.callback(results[0]))
+            .then(results => priceETH.callback(results[0]))
             .catch(err => console.error(err));
     },
 
-    observePrice() {
+    observePriceETH() {
         const query = gql`
             subscription {
                     token(id: "${sushiAddress}") {
@@ -42,17 +48,17 @@ module.exports = {
             subscribe({next, error, complete}) {
                 return observable.subscribe({
                     next(results) {
-                        next(price.callback(results.data.token));
+                        next(priceETH.callback(results.data.token));
                     },
                     error,
                     complete
                 });
             }
         };
-    }
+    },
 }
 
-const price = {
+const priceETH = {
     properties: [
         'derivedETH'
     ],

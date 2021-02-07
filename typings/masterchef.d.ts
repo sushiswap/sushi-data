@@ -102,3 +102,10 @@ export function user({ block, timestamp, user_address }: {
     timestamp?: number;
     user_address: string;
 }): Promise<User[]>;
+
+
+
+export function apys({ block, timestamp}?: {
+    block?: number;
+    timestamp?: number;
+}): Promise<(Pool & {apy: number})[]>;
