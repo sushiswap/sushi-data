@@ -98,7 +98,26 @@ module.exports = {
         };
     },
 
-    async pairs({block = undefined, timestamp = undefined, max = undefined} = {}) {
+    async pairs({block = undefined, timestamp = undefined, max = undefined, pair_addresses = undefined} = {}) {
+        if(pair_addresses) {
+            
+            block = block ? block : timestamp ? (await timestampToBlock(timestamp)) : undefined;
+            block = block ? `block: { number: ${block} }` : "";
+
+            const query = (
+                gql`{
+                    ${pair_addresses.map((pair, i) => (`
+                        pair${i}: pair(id: "${pair.toLowerCase()}", ${block}) {
+                            ${pairs.properties.toString()}
+                    }`))}
+                }`
+            );
+
+            const result = Object.values(await request(graphAPIEndpoints.exchange, query));
+
+            return pairs.callback(result);
+        }
+        
         return pageResults({
             api: graphAPIEndpoints.exchange,
             query: {

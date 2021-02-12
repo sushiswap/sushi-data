@@ -197,10 +197,11 @@ export function observePair({ pair_address }: {
     }): any;
 };
 
-export function pairs({ block, timestamp, max }?: {
+export function pairs({ block, timestamp, max, pair_addresses }?: {
     block?: number;
     timestamp?: number;
     max?: number;
+    pair_addresses?: string[];
 }): Promise<Pair[]>;
 
 export function pairs24h({ block, timestamp, max }?: {

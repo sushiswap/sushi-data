@@ -22,7 +22,7 @@ The below all return a Promise that resolves with the requested results.
 13. `exchange.pair({¹, pair_address})` Gets data for specified pair.
 14. `exchange.pair24h({¹, pair_address})` Gets 24h data for specified pair.
 15. `exchange.pairDayData({{², pair_address})` Gets daily data for specified pair.
-16. `exchange.pairs({¹})` Gets data for all pairs.
+16. `exchange.pairs({¹, [pair_addresses]})` Gets data for all / specified pairs.
 17. `exchange.pairs24h({¹})` Gets 24h data for all pairs.
 18. `exchange.ethPrice({¹})` Gets USD price of ETH.
 19. `exchange.factory({¹})` Gets all data for the SushiSwap factory.
