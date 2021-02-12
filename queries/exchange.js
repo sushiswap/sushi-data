@@ -5,9 +5,8 @@ const { SubscriptionClient } = require('subscriptions-transport-ws');
 
 const { request, gql } = require('graphql-request');
 
-const { graphAPIEndpoints, graphWSEndpoints, factoryAddress } = require('./../constants')
+const { graphAPIEndpoints, graphWSEndpoints, factoryAddress, TWENTY_FOUR_HOURS } = require('./../constants')
 const { timestampToBlock, blockToTimestamp } = require('./../utils');
-const blocks = require('./blocks')
 
 module.exports = {
     async token({block = undefined, timestamp = undefined, token_address = undefined} = {}) {
@@ -25,6 +24,50 @@ module.exports = {
         );
 
         return tokens.callback([result.token])[0];
+    },
+
+    async token24h({block = undefined, timestamp = undefined, token_address = undefined} = {}) {
+        if(!token_address) { throw new Error("sushi-data: Token address undefined"); }
+
+        let timestampNow = timestamp ? timestamp : block ? await blockToTimestamp(block) : (Math.floor(Date.now() / 1000));
+        timestamp24ago = timestampNow - TWENTY_FOUR_HOURS;
+        timestamp48ago = timestamp24ago - TWENTY_FOUR_HOURS;
+
+        block = timestamp ? await timestampToBlock(timestamp) : block;
+        block24ago = await timestampToBlock(timestamp24ago);
+        block48ago = await timestampToBlock(timestamp48ago);
+
+        const result = await module.exports.token({block: block, token_address});
+        const result24ago = await module.exports.token({block: block24ago, token_address});
+        const result48ago = await module.exports.token({block: block48ago, token_address});
+
+        const ethPriceUSD = await module.exports.ethPrice({block: block});
+        const ethPriceUSD24ago = await module.exports.ethPrice({block: block24ago});
+
+        return tokens.callback24h([result], [result24ago], [result48ago], ethPriceUSD, ethPriceUSD24ago)[0];
+    },
+
+    async tokenDayData({minTimestamp = undefined, maxTimestamp = undefined, minBlock = undefined, maxBlock = undefined, token_address = undefined} = {}) {
+        if(!token_address) { throw new Error("sushi-data: Token address undefined"); }
+        
+        return pageResults({
+            api: graphAPIEndpoints.exchange,
+            query: {
+                entity: 'tokenDayDatas',
+                selection: {
+                    orderBy: 'date', 
+                    orderDirection: 'asc',
+                    where: {
+                        token: `\\"${token_address.toLowerCase()}\\"`,
+                        date_gte: minTimestamp || (minBlock ? await blockToTimestamp(minBlock) : undefined),
+                        date_lte: maxTimestamp || (maxBlock ? await blockToTimestamp(maxBlock) : undefined),
+                    },
+                },
+                properties: tokens.propertiesDayData
+            }
+        })
+            .then(results => tokens.callbackDayData(results))
+            .catch(err => console.log(err));
     },
 
     observeToken({token_address = undefined}) {
@@ -61,14 +104,33 @@ module.exports = {
                 selection: {
                     orderBy: 'volumeUSD',
                     orderDirection: 'desc',
+                    block: block ? { number: block } : timestamp ? { number: await timestampToBlock(timestamp) } : undefined,
                 },
-                block: block ? { number: block } : timestamp ? { number: await timestampToBlock(timestamp) } : undefined,
                 properties: tokens.properties
             },
             max
         })
             .then(results => tokens.callback(results))
             .catch(err => console.log(err));
+    },
+
+    async tokens24h({block = undefined, timestamp = undefined, max = undefined} = {}) {
+        let timestampNow = timestamp ? timestamp : block ? await blockToTimestamp(block) : (Math.floor(Date.now() / 1000));
+        timestamp24ago = timestampNow - TWENTY_FOUR_HOURS;
+        timestamp48ago = timestamp24ago - TWENTY_FOUR_HOURS;
+
+        block = timestamp ? await timestampToBlock(timestamp) : block;
+        block24ago = await timestampToBlock(timestamp24ago);
+        block48ago = await timestampToBlock(timestamp48ago);
+
+        const results = await module.exports.tokens({block: block, max});
+        const results24ago = await module.exports.tokens({block: block24ago, max});
+        const results48ago = await module.exports.tokens({block: block48ago, max});
+
+        const ethPriceUSD = await module.exports.ethPrice({block: block});
+        const ethPriceUSD24ago = await module.exports.ethPrice({block: block24ago});
+
+        return tokens.callback24h(results, results24ago, results48ago, ethPriceUSD, ethPriceUSD24ago);
     },
 
     observeTokens() {
@@ -112,6 +174,50 @@ module.exports = {
         return pairs.callback([result.pair])[0];
     },
 
+    async pair24h({block = undefined, timestamp = undefined, pair_address = undefined} = {}) {
+        if(!pair_address) { throw new Error("sushi-data: Pair address undefined"); }
+        
+        let timestampNow = timestamp ? timestamp : block ? await blockToTimestamp(block) : (Math.floor(Date.now() / 1000));
+        timestamp24ago = timestampNow - TWENTY_FOUR_HOURS;
+        timestamp48ago = timestamp24ago - TWENTY_FOUR_HOURS;
+
+        block = timestamp ? await timestampToBlock(timestamp) : block;
+        block24ago = await timestampToBlock(timestamp24ago);
+        block48ago = await timestampToBlock(timestamp48ago);
+
+        const result = await module.exports.pair({block: block, pair_address});
+        const result24ago = await module.exports.pair({block: block24ago, pair_address});
+        const result48ago = await module.exports.pair({block: block48ago, pair_address});
+
+        const ethPriceUSD = await module.exports.ethPrice({block: block});
+        const ethPriceUSD24ago = await module.exports.ethPrice({block: block24ago});
+
+        return pairs.callback24h([result], [result24ago], [result48ago], ethPriceUSD, ethPriceUSD24ago)[0];
+    },
+
+    async pairDayData({minTimestamp = undefined, maxTimestamp = undefined, minBlock = undefined, maxBlock = undefined, pair_address = undefined} = {}) {
+        if(!pair_address) { throw new Error("sushi-data: Pair address undefined"); }
+        
+        return pageResults({
+            api: graphAPIEndpoints.exchange,
+            query: {
+                entity: 'pairDayDatas',
+                selection: {
+                    orderBy: 'date', 
+                    orderDirection: 'asc',
+                    where: {
+                        pair: `\\"${pair_address.toLowerCase()}\\"`,
+                        date_gte: minTimestamp || (minBlock ? await blockToTimestamp(minBlock) : undefined),
+                        date_lte: maxTimestamp || (maxBlock ? await blockToTimestamp(maxBlock) : undefined),
+                    },
+                },
+                properties: pairs.propertiesDayData
+            }
+        })
+            .then(results => pairs.callbackDayData(results))
+            .catch(err => console.log(err));
+    },
+
     observePair({pair_address = undefined}) {
         if(!pair_address) { throw new Error("sushi-data: Pair address undefined"); }
 
@@ -146,14 +252,33 @@ module.exports = {
                 selection: {
                     orderBy: 'reserveUSD',
                     orderDirection: 'desc',
+                    block: block ? { number: block } : timestamp ? { number: await timestampToBlock(timestamp) } : undefined,
                 },
-                block: block ? { number: block } : timestamp ? { number: await timestampToBlock(timestamp) } : undefined,
                 properties: pairs.properties
             },
             max
         })
             .then(results => pairs.callback(results))
             .catch(err => console.log(err));
+    },
+
+    async pairs24h({block = undefined, timestamp = undefined, max = undefined} = {}) {
+        let timestampNow = timestamp ? timestamp : block ? await blockToTimestamp(block) : (Math.floor(Date.now() / 1000));
+        timestamp24ago = timestampNow - TWENTY_FOUR_HOURS;
+        timestamp48ago = timestamp24ago - TWENTY_FOUR_HOURS;
+
+        block = timestamp ? await timestampToBlock(timestamp) : block;
+        block24ago = await timestampToBlock(timestamp24ago);
+        block48ago = await timestampToBlock(timestamp48ago);
+
+        const results = await module.exports.pairs({block: block, max});
+        const results24ago = await module.exports.pairs({block: block24ago, max});
+        const results48ago = await module.exports.pairs({block: block48ago, max});
+
+        const ethPriceUSD = await module.exports.ethPrice({block: block});
+        const ethPriceUSD24ago = await module.exports.ethPrice({block: block24ago});
+
+        return pairs.callback24h(results, results24ago, results48ago, ethPriceUSD, ethPriceUSD24ago);
     },
 
     observePairs() {
@@ -265,7 +390,7 @@ module.exports = {
                 entity: 'dayDatas',
                 selection: {
                     orderBy: 'date', 
-                    orderDirection: 'desc',
+                    orderDirection: 'asc',
                     where: {
                         date_gte: minTimestamp || (minBlock ? await blockToTimestamp(minBlock) : undefined),
                         date_lte: maxTimestamp || (maxBlock ? await blockToTimestamp(maxBlock) : undefined),
@@ -280,7 +405,7 @@ module.exports = {
 
     async twentyFourHourData({block = undefined, timestamp = undefined} = {}) {
         timestamp = timestamp ? timestamp : block ? await blockToTimestamp(block) : (Date.now() / 1000)
-        timestamp24ago = timestamp - 86400;
+        timestamp24ago = timestamp - TWENTY_FOUR_HOURS;
 
         block = await timestampToBlock(timestamp);
         block24ago = await timestampToBlock(timestamp24ago);
@@ -337,6 +462,69 @@ const tokens = {
             liquidity: Number(liquidity),
             derivedETH: Number(derivedETH)
         }));
+    },
+
+    callback24h(results, results24h, results48h, ethPriceUSD, ethPriceUSD24ago) {
+        return results.map(result => {
+            const result24h = results24h.find(e => e.id === result.id) || result;
+            const result48h = results48h.find(e => e.id === result.id) || result;
+
+            return ({
+                ...result,
+                
+                priceUSD: result.derivedETH * ethPriceUSD,
+                priceUSDChange: (result.derivedETH * ethPriceUSD) / (result24h.derivedETH * ethPriceUSD24ago) * 100 - 100,
+                priceUSDChangeCount: (result.derivedETH * ethPriceUSD) - (result24h.derivedETH * ethPriceUSD24ago),
+                
+                liquidityUSD: result.liquidity * result.derivedETH * ethPriceUSD,
+                liquidityUSDChange: (result.liquidity * result.derivedETH * ethPriceUSD) / (result24h.liquidity * result24h.derivedETH * ethPriceUSD24ago) * 100 - 100,
+                liquidityUSDChangeCount: result.liquidity * result.derivedETH * ethPriceUSD - result24h.liquidity * result24h.derivedETH * ethPriceUSD24ago,
+                
+                liquidityETH: result.liquidity * result.derivedETH,
+                liquidityETHChange: (result.liquidity * result.derivedETH) / (result24h.liquidity * result24h.derivedETH) * 100 - 100,
+                liquidityETHChangeCount: result.liquidity * result.derivedETH - result24h.liquidity * result24h.derivedETH,
+                
+                volumeUSDOneDay: result.volumeUSD - result24h.volumeUSD,
+                volumeUSDChange: (result.volumeUSD - result24h.volumeUSD) / (result24h.volumeUSD - result48h.volumeUSD) * 100 - 100,
+                volumeUSDChangeCount: (result.volumeUSD - result24h.volumeUSD) - (result24h.volumeUSD - result48h.volumeUSD),
+                
+                untrackedVolumeUSDOneDay: result.untrackedVolumeUSD - result24h.untrackedVolumeUSD,
+                untrackedVolumeUSDChange: (result.untrackedVolumeUSD - result24h.untrackedVolumeUSD) / (result24h.untrackedVolumeUSD - result48h.untrackedVolumeUSD) * 100 - 100,
+                untrackedVolumeUSDChangeCount: (result.untrackedVolumeUSD - result24h.untrackedVolumeUSD) - (result24h.untrackedVolumeUSD - result48h.untrackedVolumeUSD),
+                
+                txCountOneDay: result.txCount - result24h.txCount,
+                txCountChange: (result.txCount - result24h.txCount) / (result24h.txCount - result48h.txCount) * 100 - 100,
+                txCountChangeCount: (result.txCount - result24h.txCount) - (result24h.txCount - result48h.txCount),
+        })});
+    },
+
+    propertiesDayData: [
+        'id',
+        'date',
+        'volume',
+        'volumeETH',
+        'volumeUSD',
+        'liquidity',
+        'liquidityETH',
+        'liquidityUSD',
+        'priceUSD',
+        'txCount'
+    ],
+
+    callbackDayData(results) {
+        return results.map(result => ({
+            id: result.id,
+            date: new Date(result.date * 1000),
+            timestamp: Number(result.date),
+            volume: Number(result.volume),
+            volumeETH: Number(result.volumeETH),
+            volumeUSD: Number(result.volumeUSD),
+            liquidity: Number(result.liquidity),
+            liquidityETH: Number(result.liquidityETH),
+            liquidityUSD: Number(result.liquidityUSD),
+            priceUSD: Number(result.priceUSD),
+            txCount: Number(result.txCount)
+        }));
     }
 };
 
@@ -390,6 +578,58 @@ const pairs = {
             volumeUSD: Number(entry.volumeUSD),
             untrackedVolumeUSD: Number(entry.untrackedVolumeUSD),
             txCount: Number(entry.txCount),
+        }));
+    },
+
+    callback24h(results, results24h, results48h, ethPriceUSD, ethPriceUSD24ago) {
+        return results.map(result => {
+            const result24h = results24h.find(e => e.id === result.id) || result;
+            const result48h = results48h.find(e => e.id === result.id) || result;
+
+            return ({
+                ...result,
+                
+                trackedReserveUSD: result.trackedReserveETH * ethPriceUSD,
+                trackedReserveUSDChange: (result.trackedReserveETH * ethPriceUSD) / (result24h.trackedReserveETH * ethPriceUSD24ago) * 100 - 100,
+                trackedReserveUSDChangeCount: result.trackedReserveETH * ethPriceUSD - result24h.trackedReserveETH* ethPriceUSD24ago,
+
+                trackedReserveETHChange: (result.trackedReserveETH / result24h.trackedReserveETH) * 100 - 100,
+                trackedReserveETHChangeCount: result.trackedReserveETH - result24h.trackedReserveETH,
+
+                volumeUSDOneDay: result.volumeUSD - result24h.volumeUSD,
+                volumeUSDChange: (result.volumeUSD - result24h.volumeUSD) / (result24h.volumeUSD - result48h.volumeUSD) * 100 - 100,
+                volumeUSDChangeCount: (result.volumeUSD - result24h.volumeUSD) - (result24h.volumeUSD - result48h.volumeUSD),
+                
+                untrackedVolumeUSDOneDay: result.untrackedVolumeUSD - result24h.untrackedVolumeUSD,
+                untrackedVolumeUSDChange: (result.untrackedVolumeUSD - result24h.untrackedVolumeUSD) / (result24h.untrackedVolumeUSD - result48h.untrackedVolumeUSD) * 100 - 100,
+                untrackedVolumeUSDChangeCount: (result.untrackedVolumeUSD - result24h.untrackedVolumeUSD) - (result24h.untrackedVolumeUSD - result48h.untrackedVolumeUSD),
+
+                txCountOneDay: result.txCount - result24h.txCount,
+                txCountChange: (result.txCount - result24h.txCount) / (result24h.txCount - result48h.txCount) * 100 - 100,
+                txCountChangeCount: (result.txCount - result24h.txCount) - (result24h.txCount - result48h.txCount),
+            })});
+    },
+
+    propertiesDayData: [
+        'id',
+        'date',
+        'volumeUSD',
+        'volumeToken0',
+        'volumeToken1',
+        'reserveUSD',
+        'txCount'
+    ],
+
+    callbackDayData(results) {
+        return results.map(result => ({
+            id: result.id,
+            date: new Date(result.date * 1000),
+            timestamp: Number(result.date),
+            volumeUSD: Number(result.volumeUSD),
+            volumeToken0: Number(result.volumeToken0),
+            volumeToken1: Number(result.volumeToken1),
+            liquidityUSD: Number(result.reserveUSD),
+            txCount: Number(result.txCount)
         }));
     }
 }

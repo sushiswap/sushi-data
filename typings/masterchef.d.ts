@@ -109,3 +109,16 @@ export function apys({ block, timestamp}?: {
     block?: number;
     timestamp?: number;
 }): Promise<(Pool & {apy: number})[]>;
+
+export function apys24h({ block, timestamp}?: {
+    block?: number;
+    timestamp?: number;
+}): Promise<(Pool & {
+    apy: number
+    slpBalanceChange: number,
+    slpBalanceChangeCount: number,
+    userCountChange: number,
+    userCountChangeCount: number,
+    sushiHarvestedChange: number,
+    sushiHarvestedChangeCount: number
+})[]>;
