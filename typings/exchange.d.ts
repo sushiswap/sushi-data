@@ -64,6 +64,14 @@ export function token24h({ block, timestamp, token_address }: {
     token_address: string;
 }): Promise<Token & Token24h>;
 
+export function tokenHourData({minTimestamp, maxTimestamp, minBlock, maxBlock, token_address}: {
+    minTimestamp?: number;
+    maxTimestamp?: number;
+    minBlock?: number;
+    maxBlock?: number;
+    token_address: string;
+}): Promise<(Token & {timestamp: number})[]>;
+
 export function tokenDayData({minTimestamp, maxTimestamp, minBlock, maxBlock, token_address}: {
     minTimestamp?: number;
     maxTimestamp?: number;
@@ -179,6 +187,14 @@ export function pair24h({ block, timestamp, pair_address }: {
     pair_address: string;
 }): Promise<Pair & Pair24h>;
 
+export function pairHourData({minTimestamp, maxTimestamp, minBlock, maxBlock, pair_address}: {
+    minTimestamp?: number;
+    maxTimestamp?: number;
+    minBlock?: number;
+    maxBlock?: number;
+    pair_address: string;
+}): Promise<(Pair & {timestamp: number})[]>;
+
 export function pairDayData({minTimestamp, maxTimestamp, minBlock, maxBlock, pair_address}: {
     minTimestamp?: number;
     maxTimestamp?: number;
@@ -226,6 +242,13 @@ export function ethPrice({ block, timestamp }?: {
     block?: number;
     timestamp?: number;
 }): Promise<EthPrice>;
+
+export function ethPriceHourly({minTimestamp, maxTimestamp, minBlock, maxBlock}?: {
+    minTimestamp?: number;
+    maxTimestamp?: number;
+    minBlock?: number;
+    maxBlock?: number;
+}): Promise<(EthPrice & {timestamp: number})[]>;
 
 export function observeEthPrice(): {
     subscribe({ next, error, complete }: {

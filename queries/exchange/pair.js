@@ -5,8 +5,14 @@ const { SubscriptionClient } = require('subscriptions-transport-ws');
 
 const { request, gql } = require('graphql-request');
 
+const {
+    subWeeks,
+    getUnixTime,
+    fromUnixTime
+} = require("date-fns");
+
 const { graphAPIEndpoints, graphWSEndpoints, TWENTY_FOUR_HOURS } = require('./../../constants')
-const { timestampToBlock, blockToTimestamp } = require('./../../utils');
+const { timestampToBlock, timestampsToBlocks, blockToTimestamp } = require('./../../utils');
 
 const { ethPrice } = require('./../exchange/eth');
 
@@ -47,6 +53,41 @@ module.exports = {
         const ethPriceUSD24ago = await ethPrice({block: block24ago});
 
         return pairs.callback24h([result], [result24ago], [result48ago], ethPriceUSD, ethPriceUSD24ago)[0];
+    },
+
+    async pairHourData({minTimestamp = undefined, maxTimestamp = undefined, minBlock = undefined, maxBlock = undefined, pair_address = undefined} = {}) {
+        if(!pair_address) { throw new Error("sushi-data: Pair address undefined"); }
+        
+        minTimestamp = minBlock ? blockToTimestamp(minBlock) : minTimestamp;
+        maxTimestamp = maxBlock ? blockToTimestamp(maxBlock) : maxTimestamp;
+
+        const endTime = maxTimestamp ? fromUnixTime(maxTimestamp) : new Date();
+        let time = minTimestamp ? minTimestamp : getUnixTime(subWeeks(endTime, 1));
+
+        // create an array of hour start times until we reach current hour
+        const timestamps = [];
+        while (time <= getUnixTime(endTime) - 3600) {
+            timestamps.push(time);
+            time += 3600;
+        }
+
+        let blocks = await timestampsToBlocks(timestamps);
+
+        const query = (
+            gql`{
+                ${blocks.map((block, i) => (gql`
+                    timestamp${timestamps[i]}: pair(id: "${pair_address.toLowerCase()}", block: {number: ${block}}) {
+                        ${pairs.properties.toString()}
+                }`))}
+            }`
+        );
+
+        let result = await request(graphAPIEndpoints.exchange, query)
+        result = Object.keys(result)
+            .map(key => ({...result[key], timestamp: Number(key.split("timestamp")[1])}))
+            .sort((a, b) => (a.timestamp) - (b.timestamp));
+
+        return pairs.callbackHourData(result);
     },
 
     async pairDayData({minTimestamp = undefined, maxTimestamp = undefined, minBlock = undefined, maxBlock = undefined, pair_address = undefined} = {}) {
@@ -201,35 +242,35 @@ const pairs = {
     ],
 
     callback(results) {
-        return results.map(entry => ({
-            id: entry.id,
+        return results.map(result => ({
+            id: result.id,
             token0: { 
-                id: entry.token0.id,
-                name: entry.token0.name,
-                symbol: entry.token0.symbol,
-                totalSupply: Number(entry.token0.totalSupply),
-                derivedETH: Number(entry.token0.derivedETH),
+                id: result.token0.id,
+                name: result.token0.name,
+                symbol: result.token0.symbol,
+                totalSupply: Number(result.token0.totalSupply),
+                derivedETH: Number(result.token0.derivedETH),
             },
             token1: { 
-                id: entry.token1.id,
-                name: entry.token1.name,
-                symbol: entry.token1.symbol,
-                totalSupply: Number(entry.token1.totalSupply),
-                derivedETH: Number(entry.token1.derivedETH),
+                id: result.token1.id,
+                name: result.token1.name,
+                symbol: result.token1.symbol,
+                totalSupply: Number(result.token1.totalSupply),
+                derivedETH: Number(result.token1.derivedETH),
             },
-            reserve0: Number(entry.reserve0),
-            reserve1: Number(entry.reserve1),
-            totalSupply: Number(entry.totalSupply),
-            reserveETH: Number(entry.reserveETH),
-            reserveUSD: Number(entry.reserveUSD),
-            trackedReserveETH: Number(entry.trackedReserveETH),
-            token0Price: Number(entry.token0Price),
-            token1Price: Number(entry.token1Price),
-            volumeToken0: Number(entry.volumeToken0),
-            volumeToken1: Number(entry.volumeToken1),
-            volumeUSD: Number(entry.volumeUSD),
-            untrackedVolumeUSD: Number(entry.untrackedVolumeUSD),
-            txCount: Number(entry.txCount),
+            reserve0: Number(result.reserve0),
+            reserve1: Number(result.reserve1),
+            totalSupply: Number(result.totalSupply),
+            reserveETH: Number(result.reserveETH),
+            reserveUSD: Number(result.reserveUSD),
+            trackedReserveETH: Number(result.trackedReserveETH),
+            token0Price: Number(result.token0Price),
+            token1Price: Number(result.token1Price),
+            volumeToken0: Number(result.volumeToken0),
+            volumeToken1: Number(result.volumeToken1),
+            volumeUSD: Number(result.volumeUSD),
+            untrackedVolumeUSD: Number(result.untrackedVolumeUSD),
+            txCount: Number(result.txCount),
         }));
     },
 
@@ -260,6 +301,40 @@ const pairs = {
                 txCountChange: (result.txCount - result24h.txCount) / (result24h.txCount - result48h.txCount) * 100 - 100,
                 txCountChangeCount: (result.txCount - result24h.txCount) - (result24h.txCount - result48h.txCount),
             })});
+    },
+
+    callbackHourData(results) {
+        return results.map(result => ({
+            id: result.id,
+            token0: { 
+                id: result.token0.id,
+                name: result.token0.name,
+                symbol: result.token0.symbol,
+                totalSupply: Number(result.token0.totalSupply),
+                derivedETH: Number(result.token0.derivedETH),
+            },
+            token1: { 
+                id: result.token1.id,
+                name: result.token1.name,
+                symbol: result.token1.symbol,
+                totalSupply: Number(result.token1.totalSupply),
+                derivedETH: Number(result.token1.derivedETH),
+            },
+            reserve0: Number(result.reserve0),
+            reserve1: Number(result.reserve1),
+            totalSupply: Number(result.totalSupply),
+            reserveETH: Number(result.reserveETH),
+            reserveUSD: Number(result.reserveUSD),
+            trackedReserveETH: Number(result.trackedReserveETH),
+            token0Price: Number(result.token0Price),
+            token1Price: Number(result.token1Price),
+            volumeToken0: Number(result.volumeToken0),
+            volumeToken1: Number(result.volumeToken1),
+            volumeUSD: Number(result.volumeUSD),
+            untrackedVolumeUSD: Number(result.untrackedVolumeUSD),
+            txCount: Number(result.txCount),
+            timestamp: result.timestamp
+        }));
     },
 
     propertiesDayData: [

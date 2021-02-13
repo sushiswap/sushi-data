@@ -16,24 +16,34 @@ async function timestampToBlock(timestamp) {
 
     let result = await request(blocklytics,
         gql`{
-            blocks(first: 1, orderBy: timestamp, where: { timestamp_gte: ${timestamp} }) {
+            blocks(first: 1, orderBy: timestamp, orderDirection: desc, where: { timestamp_lte: ${timestamp} }) {
                 number
             }
         }`
     );
-    
-    // if the timestamp is too new
-    if(result.blocks.length === 0) {
-        result = await request(blocklytics,
-            gql`{
-                blocks(first: 1, orderBy: timestamp, orderDirection: desc) {
-                    number
-                }
-            }`
-        );
-    }
 
     return Number(result.blocks[0].number);
+}
+
+async function timestampsToBlocks(timestamps) {   
+    const query = (
+        gql`{
+            ${timestamps.map((timestamp) => (gql`
+                timestamp${timestamp}: blocks(first:1, orderBy: timestamp, orderDirection: desc, where: { timestamp_lte: ${timestamp}}) {
+                    number
+            }`))}
+        }`
+    );
+
+    let result = await request(blocklytics, query)
+
+    result = Object.keys(result)
+            .map(key => ({...result[key], timestamp: key.split("timestamp")[1]}))
+            .sort((a, b) => Number(a.timestamp) - (b.timestamp));
+
+    result.forEach(e => delete e.timestamp);
+
+    return result = Object.values(result).map(e => Number(e[0].number));
 }
 
 async function blockToTimestamp(block) {
@@ -99,6 +109,7 @@ async function getAverageBlockTime({block = undefined, timestamp = undefined} = 
 
 module.exports = {
     timestampToBlock,
+    timestampsToBlocks,
     blockToTimestamp,
     getAverageBlockTime,
 };

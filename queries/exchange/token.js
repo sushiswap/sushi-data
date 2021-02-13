@@ -5,8 +5,14 @@ const { SubscriptionClient } = require('subscriptions-transport-ws');
 
 const { request, gql } = require('graphql-request');
 
+const {
+    subWeeks,
+    getUnixTime,
+    fromUnixTime
+} = require("date-fns");
+
 const { graphAPIEndpoints, graphWSEndpoints, TWENTY_FOUR_HOURS } = require('./../../constants')
-const { timestampToBlock, blockToTimestamp } = require('./../../utils');
+const { timestampToBlock, timestampsToBlocks, blockToTimestamp } = require('./../../utils');
 
 const { ethPrice } = require('./../exchange/eth');
 
@@ -47,6 +53,41 @@ module.exports = {
         const ethPriceUSD24ago = await ethPrice({block: block24ago});
 
         return tokens.callback24h([result], [result24ago], [result48ago], ethPriceUSD, ethPriceUSD24ago)[0];
+    },
+
+    async tokenHourData({minTimestamp = undefined, maxTimestamp = undefined, minBlock = undefined, maxBlock = undefined, token_address = undefined} = {}) {
+        if(!token_address) { throw new Error("sushi-data: Token address undefined"); }
+        
+        minTimestamp = minBlock ? blockToTimestamp(minBlock) : minTimestamp;
+        maxTimestamp = maxBlock ? blockToTimestamp(maxBlock) : maxTimestamp;
+
+        const endTime = maxTimestamp ? fromUnixTime(maxTimestamp) : new Date();
+        let time = minTimestamp ? minTimestamp : getUnixTime(subWeeks(endTime, 1));
+
+        // create an array of hour start times until we reach current hour
+        const timestamps = [];
+        while (time <= getUnixTime(endTime) - 3600) {
+            timestamps.push(time);
+            time += 3600;
+        }
+
+        let blocks = await timestampsToBlocks(timestamps);
+
+        const query = (
+            gql`{
+                ${blocks.map((block, i) => (gql`
+                    timestamp${timestamps[i]}: token(id: ${token_address.toLowerCase()}, block: {number: ${block}}) {
+                        ${tokens.properties.toString()}
+                }`))}
+            }`
+        );
+
+        let result = await request(graphAPIEndpoints.exchange, query)
+        result = Object.keys(result)
+            .map(key => ({...result[key], timestamp: Number(key.split("timestamp")[1])}))
+            .sort((a, b) => (a.timestamp) - (b.timestamp));
+
+        return tokens.callbackHourData(result);
     },
 
     async tokenDayData({minTimestamp = undefined, maxTimestamp = undefined, minBlock = undefined, maxBlock = undefined, token_address = undefined} = {}) {
@@ -223,6 +264,23 @@ const tokens = {
                 txCountChange: (result.txCount - result24h.txCount) / (result24h.txCount - result48h.txCount) * 100 - 100,
                 txCountChangeCount: (result.txCount - result24h.txCount) - (result24h.txCount - result48h.txCount),
         })});
+    },
+
+    callbackHourData(results) {
+        return results.map(result => ({
+            id: result.id,
+            symbol: result.symbol,
+            name: result.name,
+            decimals: Number(result.decimals),
+            totalSupply: Number(result.totalSupply),
+            volume: Number(result.volume),
+            volumeUSD: Number(result.volumeUSD),
+            untrackedVolumeUSD: Number(result.untrackedVolumeUSD),
+            txCount: Number(result.txCount),
+            liquidity: Number(result.liquidity),
+            derivedETH: Number(result.derivedETH),
+            timestamp: result.timestamp
+        }));
     },
 
     propertiesDayData: [
