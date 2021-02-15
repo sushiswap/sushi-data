@@ -12,11 +12,73 @@ type Token = {
     derivedETH: number
 };
 
+type Token24h = {
+    priceUSD: number,
+    priceUSDChange: number,
+    priceUSDChangeCount: number,
+    
+    liquidityUSD: number,
+    liquidityUSDChange: number,
+    liquidityUSDChangeCount: number,
+    
+    liquidityETH: number,
+    liquidityETHChange: number,
+    liquidityETHChangeCount: number,
+    
+    volumeUSDOneDay: number,
+    volumeUSDChange: number,
+    volumeUSDChangeCount: number,
+    
+    untrackedVolumeUSDOneDay: number,
+    untrackedVolumeUSDChange: number,
+    untrackedVolumeUSDChangeCount: number,
+    
+    txCountOneDay: number,
+    txCountChange: number,
+    txCountChangeCount: number,
+};
+
+type TokenDayData = {
+    id: string,
+    date: Date,
+    timestamp: number,
+    volume: number,
+    volumeETH: number,
+    volumeUSD: number,
+    liquidity: number,
+    liquidityETH: number,
+    liquidityUSD: number,
+    priceUSD: number,
+    txCount: number,
+};
+
 export function token({ block, timestamp, token_address }: {
     block?: number;
     timestamp?: number;
     token_address: string;
 }): Promise<Token>;
+
+export function token24h({ block, timestamp, token_address }: {
+    block?: number;
+    timestamp?: number;
+    token_address: string;
+}): Promise<Token & Token24h>;
+
+export function tokenHourData({minTimestamp, maxTimestamp, minBlock, maxBlock, token_address}: {
+    minTimestamp?: number;
+    maxTimestamp?: number;
+    minBlock?: number;
+    maxBlock?: number;
+    token_address: string;
+}): Promise<(Token & {timestamp: number})[]>;
+
+export function tokenDayData({minTimestamp, maxTimestamp, minBlock, maxBlock, token_address}: {
+    minTimestamp?: number;
+    maxTimestamp?: number;
+    minBlock?: number;
+    maxBlock?: number;
+    token_address: string;
+}): Promise<TokenDayData[]>;
 
 export function observeToken({ token_address }: {
     token_address: string;
@@ -33,6 +95,12 @@ export function tokens({ block, timestamp, max }?: {
     timestamp?: number;
     max?: number;
 }): Promise<Token[]>;
+
+export function tokens24h({ block, timestamp, max }?: {
+    block?: number;
+    timestamp?: number;
+    max?: number;
+}): Promise<(Token & Token24h)[]>;
 
 export function observeTokens(): {
     subscribe({ next, error, complete }: {
@@ -75,11 +143,65 @@ type Pair = {
     txCount: number,
 }
 
+type Pair24h = {
+    trackedReserveUSD: number,
+    trackedReserveUSDChange: number,
+    trackedReserveUSDChangeCount: number,
+
+    trackedReserveETHChange: number,
+    trackedReserveETHChangeCount: number,
+
+    volumeUSDOneDay: number,
+    volumeUSDChange: number,
+    volumeUSDChangeCount: number,
+    
+    untrackedVolumeUSDOneDay: number,
+    untrackedVolumeUSDChange: number,
+    untrackedVolumeUSDChangeCount: number,
+
+    txCountOneDay: number,
+    txCountChange: number,
+    txCountChangeCount: number
+};
+
+type PairDayData = {
+    id: string,
+    date: Date,
+    timestamp: number,
+    volumeUSD: number,
+    volumeToken0: number,
+    volumeToken1: number,
+    liquidityUSD: number,
+    txCount: number
+};
+
 export function pair({ block, timestamp, pair_address }: {
     block?: number;
     timestamp?: number;
     pair_address: string;
 }): Promise<Pair>;
+
+export function pair24h({ block, timestamp, pair_address }: {
+    block?: number;
+    timestamp?: number;
+    pair_address: string;
+}): Promise<Pair & Pair24h>;
+
+export function pairHourData({minTimestamp, maxTimestamp, minBlock, maxBlock, pair_address}: {
+    minTimestamp?: number;
+    maxTimestamp?: number;
+    minBlock?: number;
+    maxBlock?: number;
+    pair_address: string;
+}): Promise<(Pair & {timestamp: number})[]>;
+
+export function pairDayData({minTimestamp, maxTimestamp, minBlock, maxBlock, pair_address}: {
+    minTimestamp?: number;
+    maxTimestamp?: number;
+    minBlock?: number;
+    maxBlock?: number;
+    pair_address: string;
+}): Promise<PairDayData[]>;
 
 export function observePair({ pair_address }: {
     pair_address: string;
@@ -91,11 +213,18 @@ export function observePair({ pair_address }: {
     }): any;
 };
 
-export function pairs({ block, timestamp, max }?: {
+export function pairs({ block, timestamp, max, pair_addresses }?: {
     block?: number;
     timestamp?: number;
     max?: number;
+    pair_addresses?: string[];
 }): Promise<Pair[]>;
+
+export function pairs24h({ block, timestamp, max }?: {
+    block?: number;
+    timestamp?: number;
+    max?: number;
+}): Promise<(Pair & Pair24h)[]>;
 
 export function observePairs(): {
     subscribe({ next, error, complete }: {
@@ -113,6 +242,13 @@ export function ethPrice({ block, timestamp }?: {
     block?: number;
     timestamp?: number;
 }): Promise<EthPrice>;
+
+export function ethPriceHourly({minTimestamp, maxTimestamp, minBlock, maxBlock}?: {
+    minTimestamp?: number;
+    maxTimestamp?: number;
+    minBlock?: number;
+    maxBlock?: number;
+}): Promise<(EthPrice & {timestamp: number})[]>;
 
 export function observeEthPrice(): {
     subscribe({ next, error, complete }: {

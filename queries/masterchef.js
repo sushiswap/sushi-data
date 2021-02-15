@@ -2,7 +2,7 @@ const pageResults = require('graph-results-pager');
 
 const { request, gql } = require('graphql-request');
 
-const { graphAPIEndpoints, chefAddress } = require('./../constants')
+const { graphAPIEndpoints, chefAddress, TWENTY_FOUR_HOURS } = require('./../constants')
 const { timestampToBlock, getAverageBlockTime } = require('./../utils');
 
 const { pairs: exchangePairs } = require('./exchange');
@@ -96,7 +96,7 @@ module.exports = {
                 entity: 'users',
                 selection: {
                     where: {
-                        address: `\\"${user_address}\\"`
+                        address: `\\"${user_address.toLowerCase()}\\"`
                     },
                     block: block ? { number: block } : timestamp ? { number: await timestampToBlock(timestamp) } : undefined,
                 },
@@ -128,6 +128,21 @@ module.exports = {
 
             return {...masterchefPool, apy};
         });
+    },
+
+    async apys24h({block = undefined, timestamp = undefined} = {}) {
+        let timestampNow = timestamp ? timestamp : block ? await blockToTimestamp(block) : (Math.floor(Date.now() / 1000));
+        timestamp24ago = timestampNow - TWENTY_FOUR_HOURS;
+        timestamp48ago = timestamp24ago - TWENTY_FOUR_HOURS;
+
+        block = timestamp ? await timestampToBlock(timestamp) : block;
+        block24ago = await timestampToBlock(timestamp24ago);
+        block48ago = await timestampToBlock(timestamp48ago);
+
+        const results = await module.exports.apys({block: block});
+        const results24ago = await module.exports.apys({block: block24ago});
+
+        return apys.callback24h(results, results24ago);
     }
 }
 
@@ -256,6 +271,7 @@ const user = {
     ],
 
     callback(results) {
+        console.log(results)
         return results.map(entry => ({
             id: entry.id,
             address: entry.address,
@@ -278,3 +294,24 @@ const user = {
         }));
     }
 };
+
+const apys = {
+    callback24h(results, results24h) {
+        return results.map(result => {
+            const result24h = results24h.find(e => e.id === result.id) || result;
+
+            return ({
+                ...result,
+
+                slpBalanceChange: (result.slpBalance / result24h.slpBalance) * 100 - 100,
+                slpBalanceChangeCount: result.slpBalance - result24h.slpBalance,
+
+                userCountChange: (result.userCount / result24h.userCount) * 100 - 100,
+                userCountChangeCount: result.userCount - result24h.userCount,
+
+                sushiHarvestedChange: (result.sushiHarvested / result24h.sushiHarvested) * 100 - 100,
+                sushiHarvestedChangeCount: result.sushiHarvested - result24h.sushiHarvested,
+            });
+        });
+    }
+}

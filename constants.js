@@ -21,4 +21,6 @@ module.exports = {
     chefAddress: "0xc2edad668740f1aa35e4d8f227fb8e17dca888cd",
     sushiAddress: "0x6b3595068778dd592e39a122f4f5a5cf09c90fe2",
     factoryAddress: "0xc0aee478e3658e2610c5f7a4a2e1777ce9e4f2ac",
+
+    TWENTY_FOUR_HOURS: 86400,
 }
