@@ -7,4 +7,4 @@ export function blockToTimestamp(block: number): Promise<number>;
 export function getAverageBlockTime({ block, timestamp }?: {
     block?: number;
     timestamp?: number;
-}): Promise<Number>;
+}): Promise<number>;
