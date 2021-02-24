@@ -2,11 +2,11 @@ type User = {
     id: string,
     address: string,
     amount: number,
-    rewardDebt: number,
+    rewardDebt: bigint,
     pool: {
         id: string,
         balance: number,
-        accSushiPerShare: number
+        accSushiPerShare: bigint
     },
     sushiAtLockup: number,
     sushiHarvestedSinceLockup: number,

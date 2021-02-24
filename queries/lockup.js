@@ -49,7 +49,7 @@ const user = {
             pool: {
                 id: entry.pool.id,
                 balance: Number(entry.pool.balance),
-                accSushiPerShare: Number(entry.pool.accSushiPerShare)
+                accSushiPerShare: BigInt(accSushiPerShare)
             },
             sushiAtLockup: Number(entry.sushiAtLockup),
             sushiHarvestedSinceLockup: Number(entry.sushiHarvestedSinceLockup),
