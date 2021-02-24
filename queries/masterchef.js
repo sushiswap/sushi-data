@@ -288,6 +288,7 @@ const user = {
         return results.map(entry => ({
             id: entry.id,
             address: entry.address,
+            poolId: Number(entry.id.split("-")[0]),
             pool: entry.pool ? {
                 id: entry.pool.id,
                 pair: entry.pool.pair,

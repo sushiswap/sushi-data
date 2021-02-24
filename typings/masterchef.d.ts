@@ -79,6 +79,7 @@ export function stakedValue({ block, timestamp, token_address }: {
 type User = {
     id: string,
     address: string,
+    poolId: number,
     pool: {
         id: string,
         pair: string,
