@@ -60,7 +60,6 @@ module.exports = {
             query: {
                 entity: 'pools',
                 selection: {
-                    orderBy: 'id',
                     block: block ? { number: block } : timestamp ? { number: await timestampToBlock(timestamp) } : undefined,
                 },
                 properties: pools.properties

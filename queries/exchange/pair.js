@@ -98,8 +98,7 @@ module.exports = {
             query: {
                 entity: 'pairDayDatas',
                 selection: {
-                    orderBy: 'date', 
-                    orderDirection: 'asc',
+                    orderDirection: 'desc',
                     where: {
                         pair: `\\"${pair_address.toLowerCase()}\\"`,
                         date_gte: minTimestamp || (minBlock ? await blockToTimestamp(minBlock) : undefined),
@@ -121,7 +120,7 @@ module.exports = {
                 pair(id: "${pair_address.toLowerCase()}") {
                     ${pairs.properties.toString()}
                 }
-        }`;
+            }`
 
         const client = new SubscriptionClient(graphWSEndpoints.exchange, { reconnect: true, }, ws,);
         const observable = client.request({ query });
@@ -164,8 +163,6 @@ module.exports = {
             query: {
                 entity: 'pairs',
                 selection: {
-                    orderBy: 'reserveUSD',
-                    orderDirection: 'desc',
                     block: block ? { number: block } : timestamp ? { number: await timestampToBlock(timestamp) } : undefined,
                 },
                 properties: pairs.properties
@@ -242,36 +239,38 @@ const pairs = {
     ],
 
     callback(results) {
-        return results.map(result => ({
-            id: result.id,
-            token0: { 
-                id: result.token0.id,
-                name: result.token0.name,
-                symbol: result.token0.symbol,
-                totalSupply: Number(result.token0.totalSupply),
-                derivedETH: Number(result.token0.derivedETH),
-            },
-            token1: { 
-                id: result.token1.id,
-                name: result.token1.name,
-                symbol: result.token1.symbol,
-                totalSupply: Number(result.token1.totalSupply),
-                derivedETH: Number(result.token1.derivedETH),
-            },
-            reserve0: Number(result.reserve0),
-            reserve1: Number(result.reserve1),
-            totalSupply: Number(result.totalSupply),
-            reserveETH: Number(result.reserveETH),
-            reserveUSD: Number(result.reserveUSD),
-            trackedReserveETH: Number(result.trackedReserveETH),
-            token0Price: Number(result.token0Price),
-            token1Price: Number(result.token1Price),
-            volumeToken0: Number(result.volumeToken0),
-            volumeToken1: Number(result.volumeToken1),
-            volumeUSD: Number(result.volumeUSD),
-            untrackedVolumeUSD: Number(result.untrackedVolumeUSD),
-            txCount: Number(result.txCount),
-        }));
+        return results
+            .map(result => ({
+                id: result.id,
+                token0: { 
+                    id: result.token0.id,
+                    name: result.token0.name,
+                    symbol: result.token0.symbol,
+                    totalSupply: Number(result.token0.totalSupply),
+                    derivedETH: Number(result.token0.derivedETH),
+                },
+                token1: { 
+                    id: result.token1.id,
+                    name: result.token1.name,
+                    symbol: result.token1.symbol,
+                    totalSupply: Number(result.token1.totalSupply),
+                    derivedETH: Number(result.token1.derivedETH),
+                },
+                reserve0: Number(result.reserve0),
+                reserve1: Number(result.reserve1),
+                totalSupply: Number(result.totalSupply),
+                reserveETH: Number(result.reserveETH),
+                reserveUSD: Number(result.reserveUSD),
+                trackedReserveETH: Number(result.trackedReserveETH),
+                token0Price: Number(result.token0Price),
+                token1Price: Number(result.token1Price),
+                volumeToken0: Number(result.volumeToken0),
+                volumeToken1: Number(result.volumeToken1),
+                volumeUSD: Number(result.volumeUSD),
+                untrackedVolumeUSD: Number(result.untrackedVolumeUSD),
+                txCount: Number(result.txCount),
+            }))
+        .sort((a, b) => b.reserveUSD - a.reserveUSD);     
     },
 
     callback24h(results, results24h, results48h, ethPriceUSD, ethPriceUSD24ago) {

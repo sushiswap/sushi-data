@@ -98,8 +98,7 @@ module.exports = {
             query: {
                 entity: 'tokenDayDatas',
                 selection: {
-                    orderBy: 'date', 
-                    orderDirection: 'asc',
+                    orderDirection: 'desc',
                     where: {
                         token: `\\"${token_address.toLowerCase()}\\"`,
                         date_gte: minTimestamp || (minBlock ? await blockToTimestamp(minBlock) : undefined),
@@ -145,8 +144,6 @@ module.exports = {
             query: {
                 entity: 'tokens',
                 selection: {
-                    orderBy: 'volumeUSD',
-                    orderDirection: 'desc',
                     block: block ? { number: block } : timestamp ? { number: await timestampToBlock(timestamp) } : undefined,
                 },
                 properties: tokens.properties
@@ -217,19 +214,21 @@ const tokens = {
     ],
 
     callback(results) {
-        return results.map(({ id, symbol, name, decimals, totalSupply, volume, volumeUSD, untrackedVolumeUSD, txCount, liquidity, derivedETH }) => ({
-            id: id,
-            symbol: symbol,
-            name: name,
-            decimals: Number(decimals),
-            totalSupply: Number(totalSupply),
-            volume: Number(volume),
-            volumeUSD: Number(volumeUSD),
-            untrackedVolumeUSD: Number(untrackedVolumeUSD),
-            txCount: Number(txCount),
-            liquidity: Number(liquidity),
-            derivedETH: Number(derivedETH)
-        }));
+        return results
+            .map(({ id, symbol, name, decimals, totalSupply, volume, volumeUSD, untrackedVolumeUSD, txCount, liquidity, derivedETH }) => ({
+                id: id,
+                symbol: symbol,
+                name: name,
+                decimals: Number(decimals),
+                totalSupply: Number(totalSupply),
+                volume: Number(volume),
+                volumeUSD: Number(volumeUSD),
+                untrackedVolumeUSD: Number(untrackedVolumeUSD),
+                txCount: Number(txCount),
+                liquidity: Number(liquidity),
+                derivedETH: Number(derivedETH)
+            }))
+        .sort((a, b) => b.volumeUSD - a.volumeUSD);
     },
 
     callback24h(results, results24h, results48h, ethPriceUSD, ethPriceUSD24ago) {

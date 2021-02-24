@@ -30,8 +30,6 @@ module.exports = {
             query: {
                 entity: 'servings',
                 selection: {
-                    orderBy: 'block',
-                    orderDirection: 'desc',
                     where: {
                         block_gte: minBlock || undefined,
                         block_lte: maxBlock || undefined,
@@ -52,10 +50,6 @@ module.exports = {
             api: graphAPIEndpoints.maker,
             query: {
                 entity: 'servers',
-                selection: {
-                    orderBy: 'sushiServed',
-                    orderDirection: 'desc',
-                },
                 block: block ? { number: block } : timestamp ? { number: await timestampToBlock(timestamp) } : undefined,
                 properties: servers.properties
             },
