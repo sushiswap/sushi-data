@@ -45,7 +45,7 @@ const user = {
             id: entry.id,
             address: entry.address,
             amount: Number(entry.amount),
-            rewardDebt: Number(entry.rewardDebt),
+            rewardDebt: BigInt(entry.rewardDebt),
             pool: {
                 id: entry.pool.id,
                 balance: Number(entry.pool.balance),
