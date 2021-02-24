@@ -106,6 +106,21 @@ module.exports = {
             .catch(err => console.log(err));
     },
 
+    async users({block = undefined, timestamp = undefined} = {}) {
+        return pageResults({
+            api: graphAPIEndpoints.masterchef,
+            query: {
+                entity: 'users',
+                selection: {
+                    block: block ? { number: block } : timestamp ? { number: await timestampToBlock(timestamp) } : undefined,
+                },
+                properties: user.properties
+            }
+        })
+            .then(results => user.callback(results))
+            .catch(err => console.log(err));
+    },
+
     async apys({block = undefined, timestamp = undefined} = {}) {
         const masterchefList = await module.exports.pools({block, timestamp});
         const exchangeList = await exchangePairs({block, timestamp});
@@ -270,17 +285,16 @@ const user = {
     ],
 
     callback(results) {
-        console.log(results)
         return results.map(entry => ({
             id: entry.id,
             address: entry.address,
-            pool: {
+            pool: entry.pool ? {
                 id: entry.pool.id,
                 pair: entry.pool.pair,
                 balance: Number(entry.pool.balance),
                 accSushiPerShare: Number(entry.pool.accSushiPerShare),
                 lastRewardBlock: Number(entry.pool.lastRewardBlock)
-            },
+            } : undefined,
             amount: Number(entry.amount),
             rewardDebt: Number(entry.rewardDebt),
             entryUSD: Number(entry.entryUSD),

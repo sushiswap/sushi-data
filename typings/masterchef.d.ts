@@ -85,7 +85,7 @@ type User = {
         balance: number,
         accSushiPerShare: number,
         lastRewardBlock: number
-    },
+    } | undefined,
     amount: number,
     rewardDebt: number,
     entryUSD: number,
@@ -101,6 +101,11 @@ export function user({ block, timestamp, user_address }: {
     block?: number;
     timestamp?: number;
     user_address: string;
+}): Promise<User[]>;
+
+export function users({ block, timestamp }?: {
+    block?: number;
+    timestamp?: number;
 }): Promise<User[]>;
 
 
