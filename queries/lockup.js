@@ -45,11 +45,11 @@ const user = {
             id: entry.id,
             address: entry.address,
             amount: Number(entry.amount),
-            rewardDebt: Number(entry.rewardDebt),
+            rewardDebt: BigInt(entry.rewardDebt),
             pool: {
                 id: entry.pool.id,
                 balance: Number(entry.pool.balance),
-                accSushiPerShare: Number(entry.pool.accSushiPerShare)
+                accSushiPerShare: BigInt(accSushiPerShare)
             },
             sushiAtLockup: Number(entry.sushiAtLockup),
             sushiHarvestedSinceLockup: Number(entry.sushiHarvestedSinceLockup),

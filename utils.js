@@ -85,24 +85,26 @@ async function getAverageBlockTime({block = undefined, timestamp = undefined} = 
         }
     })
 
-    const averageBlockTime = blocks.reduce(
-        (previousValue, currentValue, currentIndex) => {
-        if (previousValue.timestamp) {
-            const difference = previousValue.timestamp - currentValue.timestamp;
+    const averageBlockTime = blocks
+        .sort((a, b) => Number(b.timestamp) - Number(a.timestamp))
+        .reduce(
+            (previousValue, currentValue, currentIndex) => {
+            if (previousValue.timestamp) {
+                const difference = previousValue.timestamp - currentValue.timestamp;
 
-            previousValue.difference = previousValue.difference + difference;
-        }
+                previousValue.difference = previousValue.difference + difference;
+            }
 
-        previousValue.timestamp = currentValue.timestamp;
+            previousValue.timestamp = currentValue.timestamp;
 
-        if (currentIndex === blocks.length - 1) {
-            return previousValue.difference / blocks.length;
-        }
+            if (currentIndex === blocks.length - 1) {
+                return previousValue.difference / blocks.length;
+            }
 
-        return previousValue;
-        },
-        { timestamp: null, difference: 0 }
-    );
+            return previousValue;
+            },
+            { timestamp: null, difference: 0 }
+        );
 
     return averageBlockTime;
 }

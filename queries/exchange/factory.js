@@ -54,8 +54,7 @@ module.exports = {
             query: {
                 entity: 'dayDatas',
                 selection: {
-                    orderBy: 'date', 
-                    orderDirection: 'asc',
+                    orderDirection: 'desc',
                     where: {
                         date_gte: minTimestamp || (minBlock ? await blockToTimestamp(minBlock) : undefined),
                         date_lte: maxTimestamp || (maxBlock ? await blockToTimestamp(maxBlock) : undefined),

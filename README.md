@@ -38,21 +38,22 @@ The below all return a Promise that resolves with the requested results.
 29. `masterchef.info({¹})` Gets MasterChef contract info.
 30. `masterchef.pool({¹, pool_id, pool_address})` Gets pool info, either by pool id or by pool address.
 31. `masterchef.pools({¹})` Gets pool info for all pools in MasterChef.
-32. `masterchef.user({¹, user_address})` Gets all pools user has stake in.
-33. `masterchef.apys({¹})` Gets pool info for all pools in MasterChef including APYs.
-34. `masterchef.apys24h({¹})` Gets 24h pool info for all pools in MasterChef including APYs.
-35. `exchange.stakedValue({¹, token_address})` Get pricing info for MasterChef pool.
-36. `bar.info({¹})` Gets SushiBar contract info.
-37. `bar.user({¹, user_address})` Gets SushiBar data for specified user.
-38. `maker.info({¹})` Gets SushiMaker contract info.
-39. `maker.servings({²})` Gets past servings to the bar.
-40. `maker.servers({¹})` Gets servers that have served Sushi to the bar.
-41. `maker.pendingServings({¹})` Gets data on the servings ready to be served to the bar.
-42. `timelock.queuedTxs({²})` Gets queued Timelock transactions.
-43. `timelock.canceledTxs({²})` Gets canceled Timelock transactions.
-44. `timelock.executedTxs({²})` Gets executed Timelock transactions.
-45. `timelock.allTxs({²})` Gets all Timelock transactions.
-46. `lockup.user({¹, user_address})` Gets lockup data for specified user.
+32. `masterchef.user({¹, user_address})` Gets user's data for all of the user's pools.
+33. `masterchef.users({¹})` Gets all users and data for all of the users' pools.
+34. `masterchef.apys({¹})` Gets pool info for all pools in MasterChef including APYs.
+35. `masterchef.apys24h({¹})` Gets 24h pool info for all pools in MasterChef including APYs.
+36. `exchange.stakedValue({¹, token_address})` Get pricing info for MasterChef pool.
+37. `bar.info({¹})` Gets SushiBar contract info.
+38. `bar.user({¹, user_address})` Gets SushiBar data for specified user.
+39. `maker.info({¹})` Gets SushiMaker contract info.
+40. `maker.servings({²})` Gets past servings to the bar.
+41. `maker.servers({¹})` Gets servers that have served Sushi to the bar.
+42. `maker.pendingServings({¹})` Gets data on the servings ready to be served to the bar.
+43. `timelock.queuedTxs({²})` Gets queued Timelock transactions.
+44. `timelock.canceledTxs({²})` Gets canceled Timelock transactions.
+45. `timelock.executedTxs({²})` Gets executed Timelock transactions.
+46. `timelock.allTxs({²})` Gets all Timelock transactions.
+47. `lockup.user({¹, user_address})` Gets lockup data for specified user.
 
 ¹ `{block, timestamp}` Supports fetching at a specific block / UNIX timestamp.    
 ² `{minBlock, maxBlock, minTimestamp, maxTimestamp}` Supports fetching in a specific timeframe.

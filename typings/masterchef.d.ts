@@ -28,7 +28,7 @@ type Pool = {
     pair: string,
     allocPoint: number,
     lastRewardBlock: number,
-    accSushiPerShare: number,
+    accSushiPerShare: bigint,
     userCount: number,
     slpBalance: number,
     slpAge: number,
@@ -79,28 +79,31 @@ export function stakedValue({ block, timestamp, token_address }: {
 type User = {
     id: string,
     address: string,
+    poolId: number,
     pool: {
         id: string,
         pair: string,
         balance: number,
-        accSushiPerShare: number,
+        accSushiPerShare: bigint,
         lastRewardBlock: number
-    },
+    } | undefined,
     amount: number,
-    rewardDebt: number,
+    rewardDebt: bigint,
     entryUSD: number,
     exitUSD: number,
-    sushiAtLockup: number,
     sushiHarvested: number,
     sushiHarvestedUSD: number,
-    sushiHarvestedSinceLockup: number,
-    sushiHarvestedSinceLockupUSD: number
 }
 
 export function user({ block, timestamp, user_address }: {
     block?: number;
     timestamp?: number;
     user_address: string;
+}): Promise<User[]>;
+
+export function users({ block, timestamp }?: {
+    block?: number;
+    timestamp?: number;
 }): Promise<User[]>;
 
 

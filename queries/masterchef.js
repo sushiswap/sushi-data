@@ -60,7 +60,6 @@ module.exports = {
             query: {
                 entity: 'pools',
                 selection: {
-                    orderBy: 'id',
                     block: block ? { number: block } : timestamp ? { number: await timestampToBlock(timestamp) } : undefined,
                 },
                 properties: pools.properties
@@ -98,6 +97,21 @@ module.exports = {
                     where: {
                         address: `\\"${user_address.toLowerCase()}\\"`
                     },
+                    block: block ? { number: block } : timestamp ? { number: await timestampToBlock(timestamp) } : undefined,
+                },
+                properties: user.properties
+            }
+        })
+            .then(results => user.callback(results))
+            .catch(err => console.log(err));
+    },
+
+    async users({block = undefined, timestamp = undefined} = {}) {
+        return pageResults({
+            api: graphAPIEndpoints.masterchef,
+            query: {
+                entity: 'users',
+                selection: {
                     block: block ? { number: block } : timestamp ? { number: await timestampToBlock(timestamp) } : undefined,
                 },
                 properties: user.properties
@@ -216,7 +230,7 @@ const pools = {
             pair: pair,
             allocPoint: Number(allocPoint),
             lastRewardBlock: Number(lastRewardBlock),
-            accSushiPerShare: accSushiPerShare / 1e18,
+            accSushiPerShare: BigInt(accSushiPerShare),
             userCount: Number(userCount),
             slpBalance: Number(slpBalance),
             slpAge: Number(slpAge),
@@ -263,34 +277,28 @@ const user = {
         'rewardDebt',
         'entryUSD',
         'exitUSD',
-        'sushiAtLockup',
         'sushiHarvested',
         'sushiHarvestedUSD',
-        'sushiHarvestedSinceLockup',
-        'sushiHarvestedSinceLockupUSD',
     ],
 
     callback(results) {
-        console.log(results)
         return results.map(entry => ({
             id: entry.id,
             address: entry.address,
-            pool: {
+            poolId: Number(entry.id.split("-")[0]),
+            pool: entry.pool ? {
                 id: entry.pool.id,
                 pair: entry.pool.pair,
                 balance: Number(entry.pool.balance),
-                accSushiPerShare: Number(entry.pool.accSushiPerShare),
+                accSushiPerShare: BigInt(accSushiPerShare),
                 lastRewardBlock: Number(entry.pool.lastRewardBlock)
-            },
+            } : undefined,
             amount: Number(entry.amount),
-            rewardDebt: Number(entry.rewardDebt),
+            rewardDebt: BigInt(entry.rewardDebt),
             entryUSD: Number(entry.entryUSD),
             exitUSD: Number(entry.exitUSD),
-            sushiAtLockup: Number(entry.sushiAtLockup),
             sushiHarvested: Number(entry.sushiHarvested),
             sushiHarvestedUSD: Number(entry.sushiHarvestedUSD),
-            sushiHarvestedSinceLockup: Number(entry.sushiHarvestedSinceLockup),
-            sushiHarvestedSinceLockupUSD: Number(entry.sushiHarvestedSinceLockupUSD)
         }));
     }
 };
