@@ -91,11 +91,8 @@ type User = {
     rewardDebt: bigint,
     entryUSD: number,
     exitUSD: number,
-    sushiAtLockup: number,
     sushiHarvested: number,
     sushiHarvestedUSD: number,
-    sushiHarvestedSinceLockup: number,
-    sushiHarvestedSinceLockupUSD: number
 }
 
 export function user({ block, timestamp, user_address }: {

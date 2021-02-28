@@ -277,11 +277,8 @@ const user = {
         'rewardDebt',
         'entryUSD',
         'exitUSD',
-        'sushiAtLockup',
         'sushiHarvested',
         'sushiHarvestedUSD',
-        'sushiHarvestedSinceLockup',
-        'sushiHarvestedSinceLockupUSD',
     ],
 
     callback(results) {
@@ -300,11 +297,8 @@ const user = {
             rewardDebt: BigInt(entry.rewardDebt),
             entryUSD: Number(entry.entryUSD),
             exitUSD: Number(entry.exitUSD),
-            sushiAtLockup: Number(entry.sushiAtLockup),
             sushiHarvested: Number(entry.sushiHarvested),
             sushiHarvestedUSD: Number(entry.sushiHarvestedUSD),
-            sushiHarvestedSinceLockup: Number(entry.sushiHarvestedSinceLockup),
-            sushiHarvestedSinceLockupUSD: Number(entry.sushiHarvestedSinceLockupUSD)
         }));
     }
 };
