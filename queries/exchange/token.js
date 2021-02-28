@@ -76,7 +76,7 @@ module.exports = {
         const query = (
             gql`{
                 ${blocks.map((block, i) => (gql`
-                    timestamp${timestamps[i]}: token(id: ${token_address.toLowerCase()}, block: {number: ${block}}) {
+                    timestamp${timestamps[i]}: token(id: "${token_address.toLowerCase()}", block: {number: ${block}}) {
                         ${tokens.properties.toString()}
                 }`))}
             }`
