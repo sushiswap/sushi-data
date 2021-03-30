@@ -290,7 +290,7 @@ const user = {
                 id: entry.pool.id,
                 pair: entry.pool.pair,
                 balance: Number(entry.pool.balance),
-                accSushiPerShare: BigInt(accSushiPerShare),
+                accSushiPerShare: BigInt(entry.pool.accSushiPerShare),
                 lastRewardBlock: Number(entry.pool.lastRewardBlock)
             } : undefined,
             amount: Number(entry.amount),
