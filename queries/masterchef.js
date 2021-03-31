@@ -138,7 +138,7 @@ module.exports = {
 
             const tvl = masterchefPool.slpBalance * (exchangePool.reserveUSD / exchangePool.totalSupply);
             const sushiPerBlock = (masterchefPool.allocPoint / (totalAllocPoint) * 100);
-            const apy = sushiUSD * (sushiPerBlock * (60 / averageBlockTime) * 60 * 24 * 365) / tvl * 100 * 3; // *3 => vesting
+            const apy = sushiUSD * (sushiPerBlock * (60 / averageBlockTime) * 60 * 24 * 365) / tvl * 100;
 
             return {...masterchefPool, apy};
         });
