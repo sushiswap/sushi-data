@@ -1,7 +1,7 @@
 const pageResults = require('graph-results-pager');
 
 const ws = require('isomorphic-ws');
-const { SubscriptionClient } = require('subscriptions-transport-ws'); 
+const { SubscriptionClient } = require('subscriptions-transport-ws');
 
 const { request, gql } = require('graphql-request');
 
@@ -49,7 +49,7 @@ const user = {
             pool: {
                 id: entry.pool.id,
                 balance: Number(entry.pool.balance),
-                accSushiPerShare: BigInt(accSushiPerShare)
+                accSushiPerShare: BigInt(entry.pool.accSushiPerShare)
             },
             sushiAtLockup: Number(entry.sushiAtLockup),
             sushiHarvestedSinceLockup: Number(entry.sushiHarvestedSinceLockup),
