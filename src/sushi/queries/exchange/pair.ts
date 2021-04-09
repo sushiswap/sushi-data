@@ -283,20 +283,8 @@ export default {
 
 const pair_properties = [
     'id',
-    `token0 { 
-        id, 
-        name, 
-        symbol, 
-        totalSupply, 
-        derivedETH
-    }`,
-    `token1 {
-        id,
-        name,
-        symbol,
-        totalSupply,
-        derivedETH
-    }`,
+    'token0 { id, name, symbol, totalSupply, derivedETH }',
+    'token1 { id, name, symbol, totalSupply, derivedETH }',
     'reserve0',
     'reserve1',
     'totalSupply',

@@ -67,14 +67,7 @@ const userHistory_properties = [
     'id',
     'timestamp',
     'block',
-    `pair {
-        id, 
-        reserve0, 
-        reserve1, 
-        reserveUSD, 
-        token0 { id },
-        token1 { id } 
-    }`,
+    'pair { id, reserve0, reserve1, reserveUSD, token0 { id }, token1 { id } }',
     'token0PriceUSD',
     'token1PriceUSD',
     'reserve0',
@@ -115,22 +108,7 @@ function userHistory_callback(results: LiquidityPositionSnapshot[]) {
 
 const userPositions_properties = [
     'id',
-    `pair {
-        id, 
-        reserve0, 
-        reserve1, 
-        reserveUSD, 
-        token0 { 
-            id, 
-            symbol, 
-            derivedETH
-        }, 
-        token1 { 
-            id, 
-            symbol, 
-            derivedETH 
-        }, 
-        totalSupply }`,
+    'pair { id, reserve0, reserve1, reserveUSD, token0 { id, symbol, derivedETH }, token1 { id, symbol, derivedETH }, totalSupply }',
     'liquidityTokenBalance',
 ];
 
