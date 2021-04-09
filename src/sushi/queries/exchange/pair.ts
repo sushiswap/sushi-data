@@ -178,7 +178,7 @@ export function observePair({address}: {address: string}) {
 
 export async function pairs({block = undefined, timestamp = undefined, max = undefined, addresses = undefined}: (
     Arg2 & {addresses?: string[] | undefined}
-)) {
+) = {}) {
     if(addresses) {
         
         block = block ? block : timestamp ? (await timestampToBlock(timestamp)) : undefined;
@@ -214,7 +214,7 @@ export async function pairs({block = undefined, timestamp = undefined, max = und
 
 
 
-export async function pairs24h({block = undefined, timestamp = undefined, max = undefined}: Arg2) {
+export async function pairs24h({block = undefined, timestamp = undefined, max = undefined}: Arg2 = {}) {
     let timestampNow = timestamp ? timestamp : block ? await blockToTimestamp(block) : (Math.floor(Date.now() / 1000));
     const timestamp24ago = timestampNow - TWENTY_FOUR_HOURS;
     const timestamp48ago = timestamp24ago - TWENTY_FOUR_HOURS;
