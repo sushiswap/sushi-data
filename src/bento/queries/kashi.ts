@@ -11,7 +11,7 @@ import {
 import { graphAPIEndpoints, TWENTY_FOUR_HOURS } from '../../constants';
 import { timestampToBlock, timestampsToBlocks, blockToTimestamp } from '../../utils';
 
-import { Arg1, Arg2, Arg3, Awaited } from '../../../types';
+import { Arg1, Arg2, Arg3, Arg5, Awaited } from '../../../types';
 import { KashiPair } from '../../../types/subgraphs/bentobox';
 
 
@@ -43,30 +43,29 @@ export async function pairChange({block = undefined, timestamp = undefined, spac
         address: string
     }
 )) {    
-    let timestampNow = timestamp ? timestamp : block ? await blockToTimestamp(block) : (Math.floor(Date.now() / 1000));
+    const timestampNow = timestamp ? timestamp : block ? await blockToTimestamp(block) : (Math.floor(Date.now() / 1000));
     const timestamp1ago = timestampNow - spacing;
     const timestamp2ago = timestamp1ago - spacing;
 
-    block = timestamp ? await timestampToBlock(timestamp) : block;
-    const [block1ago, block2ago] = await Promise.all([
+    const [blockNow, block1ago, block2ago] = await Promise.all([
+        timestamp ? timestampToBlock(timestamp) : block,
         timestampToBlock(timestamp1ago),
         timestampToBlock(timestamp2ago)
     ]);
 
     const [result, result1ago, result2ago] = await Promise.all([
-        pair({block: block, address}),
+        pair({block: blockNow, address}),
         pair({block: block1ago, address}),
         pair({block: block2ago, address})
     ])
-    console.log(result2ago)
+
     return pair_callbackChange([result], [result1ago], [result2ago])[0];
 }
 
 
 
-export async function pairChart({minTimestamp = undefined, maxTimestamp = undefined, minBlock = undefined, maxBlock = undefined, spacing = TWENTY_FOUR_HOURS, address}: (
-    Arg3 & {
-        spacing?: number;
+export async function pairChart({minTimestamp = undefined, maxTimestamp = undefined, minBlock = undefined, maxBlock = undefined, min = 10, max = undefined, spacing = TWENTY_FOUR_HOURS, address}: (
+    Arg5 & {
         address: string;
     }
 )) {    
@@ -74,12 +73,12 @@ export async function pairChart({minTimestamp = undefined, maxTimestamp = undefi
     maxTimestamp = maxBlock ? await blockToTimestamp(maxBlock) : maxTimestamp;
 
     const endTime = maxTimestamp ? fromUnixTime(maxTimestamp) : new Date();
-    let time = minTimestamp ? minTimestamp : getUnixTime(subWeeks(endTime, 1));
+    let time = minTimestamp ? minTimestamp : Math.floor(Date.now() / 1000) - spacing * min;
 
     // create an array of hour start times until we reach current hour
     const timestamps: number[] = [];
-    while (time <= getUnixTime(endTime) - spacing) {
-        timestamps.push(time);
+    while (time <= getUnixTime(endTime)) {
+        timestamps.push(time + spacing);
         time += spacing;
     }
 
@@ -94,14 +93,14 @@ export async function pairChart({minTimestamp = undefined, maxTimestamp = undefi
         }`
     );
 
-    let result = await request(graphAPIEndpoints.bentobox, query)
+    let result = await request(graphAPIEndpoints.bentobox, query);
 
     result = Object.keys(result)
         .map(key => ({...result[key], timestamp: Number(key.split("timestamp")[1])}))
         .sort((a, b) => (a.timestamp) - (b.timestamp))
         .filter(e => Object.keys(e).length > 1)
 
-    return pair_callbackChart(result);
+    return pair_callbackChart(result).slice(undefined, max);
 }
 
 

@@ -6,14 +6,16 @@ import { SubscriptionClient } from 'subscriptions-transport-ws';
 import { request, gql } from 'graphql-request';
 
 import { graphAPIEndpoints, graphWSEndpoints, TWENTY_FOUR_HOURS, factoryAddress } from '../../../constants';
-import { timestampToBlock, blockToTimestamp } from '../../../utils';
+import { timestampToBlock, timestampsToBlocks, blockToTimestamp } from '../../../utils';
 
 import {
     Arg1,
-    Arg4,
+    Arg5,
+    Awaited,
 } from '../../../../types';
 
-import { DayData, Factory } from '../../../../types/subgraphs/exchange';
+import { Factory } from '../../../../types/subgraphs/exchange';
+import { fromUnixTime, getUnixTime, subWeeks } from 'date-fns';
 
 
 
@@ -64,68 +66,76 @@ export function observeFactory() {
 
 
 
-export async function dayData({minTimestamp = undefined, maxTimestamp = undefined, minBlock = undefined, maxBlock = undefined, max = undefined}: Arg4 = {}) {
-    const results = await pageResults({
-        api: graphAPIEndpoints.exchange,
-        query: {
-            entity: 'dayDatas',
-            selection: {
-                orderDirection: 'desc',
-                where: {
-                    date_gte: minTimestamp || (minBlock ? await blockToTimestamp(minBlock) : undefined),
-                    date_lte: maxTimestamp || (maxBlock ? await blockToTimestamp(maxBlock) : undefined),
-                },
-            },
-            properties: dayData_properties,
-        },
-        max
-    })
+export async function factoryChart({minTimestamp = undefined, maxTimestamp = undefined, minBlock = undefined, maxBlock = undefined, min = 10, max = undefined, spacing = TWENTY_FOUR_HOURS}: Arg5 = {}) {
+    minTimestamp = minBlock ? await blockToTimestamp(minBlock) : minTimestamp;
+    maxTimestamp = maxBlock ? await blockToTimestamp(maxBlock) : maxTimestamp;
 
-    return dayData_callback(results);
+    const endTime = maxTimestamp ? fromUnixTime(maxTimestamp) : new Date();
+    let time = (minTimestamp ? minTimestamp : Math.floor(Date.now() / 1000) - spacing * min) - spacing * 2; // neccessary for some of the calcs, the two results will be cut off
+
+    const timestamps: number[] = [];
+    while (time <= getUnixTime(endTime) - spacing) {
+        timestamps.push(time + spacing);
+        time += spacing;
+    }
+
+    const blocks = await timestampsToBlocks(timestamps);
+
+    const query = (
+        `{
+            ${blocks.map((block, i) => (gql`
+                timestamp${timestamps[i]}: factory(id: "${factoryAddress}", block: {number: ${block}}) {
+                    ${factory_properties.toString()}
+            }`))}
+        }`
+    );
+
+    let result = await request(graphAPIEndpoints.exchange, query);
+
+    result = Object.keys(result)
+        .map(key => ({...factory_callback(result[key]), timestamp: Number(key.split("timestamp")[1])}))
+        .sort((a, b) => (a.timestamp) - (b.timestamp))
+        .filter(e => Object.keys(e).length > 1)
+
+
+    return factoryChart_callback(result).slice(2).slice(undefined, max);
 }
 
 
 
-export async function twentyFourHourData({block = undefined, timestamp = undefined}: Arg1 = {}) {
-    timestamp = timestamp ? timestamp : block ? await blockToTimestamp(block) : (Date.now() / 1000)
-    const timestamp24ago = timestamp - TWENTY_FOUR_HOURS;
+export async function factoryChange({block = undefined, timestamp = undefined, spacing = TWENTY_FOUR_HOURS}: (
+    Arg1 & {spacing?: number;}
+) = {}) {
+    const timestampNow = timestamp ? timestamp : block ? await blockToTimestamp(block) : (Math.floor(Date.now() / 1000))
+    const timestamp1ago = timestampNow - spacing;
+    const timestamp2ago = timestamp1ago - spacing;
 
-    block = await timestampToBlock(timestamp);
-    const block24ago = await timestampToBlock(timestamp24ago);
+    const [blockNow, block1ago, block2ago] = await Promise.all([
+        timestampToBlock(timestampNow),
+        timestampToBlock(timestamp1ago),
+        timestampToBlock(timestamp2ago)
+    ]);
 
-    const blockString = `block: { number: ${block} }`;
-    const block24agoString = `block: { number: ${block24ago} }`;
+    const [result, result1ago, result2ago] = await Promise.all([
+        factory({block: blockNow}),
+        factory({block: block1ago}),
+        factory({block: block2ago})
+    ]);
 
-    const result = await request(graphAPIEndpoints.exchange,
-        gql`{
-                factory(id: "${factoryAddress}", ${blockString}) {
-                    ${twentyFourHourData_properties.toString()}
-                }
-            }`
-    );
-
-    const result24ago = await request(graphAPIEndpoints.exchange,
-        gql`{
-                factory(id: "${factoryAddress}", ${block24agoString}) {
-                    ${twentyFourHourData_properties.toString()}
-                }
-            }`
-    );
-
-    return twentyFourHourData_callback(result.factory, result24ago.factory);
+    return factoryChange_callback(result, result1ago, result2ago);
 }
 
 export default {
     factory,
     observeFactory,
-    dayData,
-    twentyFourHourData
+    factoryChart,
+    factoryChange
 }
 
 
 
 const factory_properties = [
-    'pairCount',
+    'id',
     'volumeUSD',
     'volumeETH',
     'untrackedVolumeUSD',
@@ -134,10 +144,12 @@ const factory_properties = [
     'txCount',
     'tokenCount',
     'userCount',
+    'pairCount',
 ];
 
 function factory_callback(results: Factory) {
     return ({
+        id: String(results.id),
         pairCount: Number(results.pairCount),
         volumeUSD: Number(results.volumeUSD),
         volumeETH: Number(results.volumeETH),
@@ -152,50 +164,62 @@ function factory_callback(results: Factory) {
 
 
 
-const dayData_properties = [
-    'id',
-    'date',
-    'volumeETH',
-    'volumeUSD',
-    'liquidityETH',
-    'liquidityUSD',
-    'txCount'
-];
+function factoryChart_callback(results: (Awaited<ReturnType<typeof factory>> & {timestamp: number})[]) {
+    return results.map((result, i) => {
+        const result1ago = results[i-1] ?? result;
+        const result2ago = results[i-2] ?? result1ago;
 
-function dayData_callback(results: DayData[]) {
-    return results.map(({ id, date, volumeETH, volumeUSD, liquidityETH, liquidityUSD, txCount }) => ({
-        id: Number(id),
-        date: new Date(Number(date) * 1000),
-        volumeETH: Number(volumeETH),
-        volumeUSD: Number(volumeUSD),
-        liquidityETH: Number(liquidityETH),
-        liquidityUSD: Number(liquidityUSD),
-        txCount: Number(txCount),
-    }));
-};
+        return ({
+            ...factoryChange_callback(result, result1ago, result2ago),
+            timestamp: result.timestamp
+        });
+    })
+}
 
 
 
-const twentyFourHourData_properties = [
-    'id',
-    'volumeUSD',
-    'volumeETH',
-    'untrackedVolumeUSD',
-    'liquidityUSD',
-    'liquidityETH',
-    'txCount',
-    'pairCount'
-];
+function factoryChange_callback(
+    results: Awaited<ReturnType<typeof factory>>, 
+    results1ago: Awaited<ReturnType<typeof factory>>,
+    results2ago: Awaited<ReturnType<typeof factory>>,
+    ) {
 
-function twentyFourHourData_callback(results: Factory, results24ago: Factory) {
     return ({
         id: String(results.id),
-        volumeUSD: Number(results.volumeUSD) - Number(results24ago.volumeUSD),
-        volumeETH: Number(results.volumeETH) - Number(results24ago.volumeETH),
-        untrackedVolumeUSD: Number(results.untrackedVolumeUSD) - Number(results24ago.untrackedVolumeUSD),
-        liquidityETH: Number(results.liquidityETH) - Number(results24ago.liquidityETH),
-        liquidityUSD: Number(results.liquidityUSD) - Number(results24ago.liquidityUSD),
-        txCount: Number(results.txCount) - Number(results24ago.txCount),
-        pairCount: Number(results.pairCount) - Number(results24ago.pairCount)
+
+        volumeUSD: results.volumeUSD,
+        volumeUSDPeriod: results.volumeUSD - results1ago.volumeUSD,
+        volumeUSDChange: (results.volumeUSD / results1ago.volumeUSD) * 100 - 100,
+        volumeUSDChangeCount: (results.volumeUSD - results1ago.volumeUSD) - (results1ago.volumeUSD - results2ago.volumeUSD),
+
+        volumeETH: results.volumeETH,
+        volumeETHPeriod: results.volumeETH - results1ago.volumeETH,
+        volumeETHChange: (results.volumeETH / results1ago.volumeETH) * 100 - 100,
+        volumeETHChangeCount: (results.volumeETH - results1ago.volumeETH) - (results1ago.volumeETH - results2ago.volumeETH),
+
+        untrackedVolumeUSD: results.untrackedVolumeUSD,
+        untrackedVolumeUSDPeriod: results.untrackedVolumeUSD - results1ago.untrackedVolumeUSD,
+        untrackedVolumeUSDChange: (results.untrackedVolumeUSD / results1ago.untrackedVolumeUSD) * 100 - 100,
+        untrackedVolumeUSDChangeCount: (results.untrackedVolumeUSD - results1ago.untrackedVolumeUSD) - (results1ago.untrackedVolumeUSD - results2ago.untrackedVolumeUSD),
+
+        liquidityUSD: results.liquidityUSD,
+        liquidityUSDPeriod: results.liquidityUSD - results1ago.liquidityUSD,
+        liquidityUSDChange: (results.liquidityUSD / results1ago.liquidityUSD) * 100 - 100,
+        liquidityUSDChangeCount: (results.liquidityUSD - results1ago.liquidityUSD) - (results1ago.liquidityUSD - results2ago.liquidityUSD),
+
+        liquidityETH: results.liquidityETH,
+        liquidityETHPeriod: results.liquidityETH - results1ago.liquidityETH,
+        liquidityETHChange: (results.liquidityETH / results1ago.liquidityETH) * 100 - 100,
+        liquidityETHChangeCount: (results.liquidityETH - results1ago.liquidityETH) - (results1ago.liquidityETH - results2ago.liquidityETH),
+
+        txCount: results.txCount,
+        txCountPeriod: results.txCount - results1ago.txCount,
+        txCountChange: (results.txCount / results1ago.txCount) * 100 - 100,
+        txCountChangeCount: (results.txCount - results1ago.txCount) - (results1ago.txCount - results2ago.txCount),
+
+        pairCount: results.pairCount,
+        pairCountPeriod: results.pairCount - results1ago.pairCount,
+        pairCountChange: (results.pairCount / results1ago.pairCount) * 100 - 100,
+        pairCountChangeCount: (results.pairCount - results1ago.pairCount) - (results1ago.pairCount - results2ago.pairCount),
     })
 };

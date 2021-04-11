@@ -6,37 +6,9 @@ import {
 } from "date-fns";
 
 import { TWENTY_FOUR_HOURS } from '../../constants';
-import { dayData, tokenHourData, tokenDayData, pairHourData, pairDayData, ethPriceHourly } from './exchange';
+import { tokenHourData, tokenDayData, pairHourData, pairDayData, ethPriceHourly } from './exchange';
 
 import { Awaited } from "../../../types";
-
-
-
-export async function factory() {
-    let data = await dayData();
-    let weeklyData: {date: Date; weeklyVolumeUSD: number}[] = [];
-
-    let startIndexWeekly = -1;
-    let currentWeek = -1;
-
-    data.forEach((entry, i) => {
-        const week = getWeek(data[i].date)
-
-        if (week !== currentWeek) {
-            currentWeek = week;
-            startIndexWeekly++;
-        }
-
-        weeklyData[startIndexWeekly] = weeklyData[startIndexWeekly] || {};
-        weeklyData[startIndexWeekly].date = data[i].date;
-        weeklyData[startIndexWeekly].weeklyVolumeUSD = ((
-            weeklyData[startIndexWeekly].weeklyVolumeUSD ? 
-                weeklyData[startIndexWeekly].weeklyVolumeUSD : 0) + data[i].volumeUSD
-            );
-        });
-
-    return [data, weeklyData];
-}
 
 
 
@@ -210,7 +182,6 @@ export async function pairDaily({address}: {address: string}) {
 }
 
 export default {
-    factory,
     tokenHourly,
     tokenDaily,
     pairHourly,

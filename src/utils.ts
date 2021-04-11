@@ -21,6 +21,8 @@ import type {
     GetAverageBlockTime
 } from './../types/utils'
 
+
+
 export const timestampToBlock: TimestampToBlock = async(timestamp) => {
     timestamp = String(timestamp).length > 10 ? Math.floor(timestamp / 1000) : timestamp;
 
