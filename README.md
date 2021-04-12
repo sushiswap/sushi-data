@@ -54,6 +54,7 @@ The below all return a Promise that resolves with the requested results.
 45. `timelock.executedTxs({²})` Gets executed Timelock transactions.
 46. `timelock.allTxs({²})` Gets all Timelock transactions.
 47. `lockup.user({¹, user_address})` Gets lockup data for specified user.
+48. `bentobox.clones({masterAddress, chainId})` Gets Clone contracts for specified master contract.
 
 ¹ `{block, timestamp}` Supports fetching at a specific block / UNIX timestamp.    
 ² `{minBlock, maxBlock, minTimestamp, maxTimestamp}` Supports fetching in a specific timeframe.

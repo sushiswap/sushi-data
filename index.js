@@ -16,6 +16,7 @@ const bar = require('./queries/bar')
 const maker = require('./queries/maker')
 const timelock =  require('./queries/timelock');
 const lockup = require('./queries/lockup');
+const bentobox = require('./queries/bentobox');
 const utils = require('./utils');
 
 module.exports = {
@@ -31,6 +32,7 @@ module.exports = {
 	maker,
 	timelock,
 	lockup,
+	bentobox,
 	utils,
 	async timeseries({blocks = undefined, timestamps = undefined, target = undefined} = {}, targetArguments) {
 		if(!target) { throw new Error("sushi-data: Target function undefined"); }
