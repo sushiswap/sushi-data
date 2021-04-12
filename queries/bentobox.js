@@ -35,15 +35,13 @@ module.exports = {
 const clones = {
   properties: [
     'id',
-    'block',
-    'timestamp'
+    'data'
   ],
 
   callback(results) {
-    return results.map(({ id, block, timestamp }) => ({
+    return results.map(({ id, data, block, timestamp }) => ({
       address: id,
-      block: Number(block),
-      timestamp: Number(timestamp)
+      data: data
     }));
   }
 }
