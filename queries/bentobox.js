@@ -1,4 +1,11 @@
-const pageResults = require('graph-results-pager');
+const pageResults = require('graph-results-pager')
+
+const { request, gql } = require('graphql-request')
+
+const { priceUSD: sushiPriceUSD } = require('./sushi')
+const { token: tokenInfo } = require('./exchange')
+const { ethPrice: ethPriceUSD } = require('./exchange')
+const { info: masterChefInfo } = require('./masterchef')
 
 // accessed by chainId
 const ENDPOINTS = {
@@ -8,6 +15,8 @@ const ENDPOINTS = {
   137: 'https://api.thegraph.com/subgraphs/name/sushiswap/matic-bentobox',
   100: 'https://api.thegraph.com/subgraphs/name/sushiswap/xdai-bentobox',
 }
+
+const MASTER_CONTRACT = '0x2cba6ab6574646badc84f0544d05059e57a5dc42'
 
 module.exports = {
   async clones({ masterAddress = undefined, chainId = undefined } = {}) {
@@ -30,6 +39,24 @@ module.exports = {
       .catch(err => console.log(err));
   },
 
+  async kashiStakedInfo() {
+    const result = await request(ENDPOINTS[1],
+      gql`{
+            kashiPairs(where: {masterContract: "${MASTER_CONTRACT}"}) {
+              ${kashiStakedInfo.properties.toString()}
+            }
+          }`
+    );
+
+    result.sushiUSD = await sushiPriceUSD();
+    result.ethUSD = await ethPriceUSD();
+    let masterChef = await masterChefInfo();
+    result.totalAP = masterChef.totalAllocPoint;
+    result.sushiPerBlock = masterChef.sushiPerBlock;
+
+    return kashiStakedInfo.callback(result)
+  },
+
 }
 
 const clones = {
@@ -42,6 +69,42 @@ const clones = {
     return results.map(({ id, data, block, timestamp }) => ({
       address: id,
       data: data
+    }));
+  }
+}
+
+const kashiStakedInfo = {
+  properties: [
+    'id',
+    'name',
+    'symbol',
+    'asset { id, decimals }',
+    'collateral { id }',
+    'totalAssetBase',
+    'totalAssetElastic'
+  ],
+
+  async callback(results) {
+    return await Promise.all(results.kashiPairs.map(async (result) => {
+      let asset = await tokenInfo({ token_address: result.asset.id });
+      let balanceUSD = (result.totalAssetBase / (10 ** result.asset.decimals)) * asset.derivedETH * results.ethUSD;
+      let rewardPerBlock = ((1 / results.totalAP) * results.sushiPerBlock);
+      let roiPerBlock = (rewardPerBlock * results.sushiUSD) / balanceUSD;
+      let roiPerYear = roiPerBlock * 6500 * 24 * 30 * 12
+
+      return {
+        id: result.id,
+        name: result.name,
+        symbol: result.symbol,
+        asset: result.asset.id,
+        collateral: result.collateral.id,
+        totalAssetBase: Number(result.totalAssetBase),
+        totalAssetElastic: Number(result.totalAssetElastic),
+        balanceUSD: balanceUSD,
+        rewardPerBlock: rewardPerBlock,
+        roiPerBlock: roiPerBlock,
+        roiPerYear: roiPerYear
+      }
     }));
   }
 }
