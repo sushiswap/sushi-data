@@ -23,4 +23,4 @@ export function clones({ masterAddress, chainId }?: {
   chainId?: number;
 }): Promise<Clone>;
 
-export function kashiStakedInfo(): Promise<Pair>;
+export function kashiStakedInfo(): Promise<Pair[]>;
