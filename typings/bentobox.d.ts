@@ -9,7 +9,11 @@ type Pair = {
   name: string;
   symbol: string;
   asset: string;
+  assetSymbol: string;
+  assetDecimals: number;
   collateral: string;
+  collateralSymbol: string;
+  collateralDecimals: number;s
   totalAssetBase: number;
   totalAssetElastic: number;
   balanceUSD: number;
