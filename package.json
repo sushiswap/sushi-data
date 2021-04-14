@@ -1,7 +1,7 @@
 {
 	"name": "@sushiswap/sushi-data",
 	"license": "MIT",
-	"version": "1.0.12",
+	"version": "1.0.13",
 	"author": "SushiSwap",
 	"main": "index",
 	"scripts": {
