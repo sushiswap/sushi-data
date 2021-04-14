@@ -5,13 +5,17 @@ type Clone = {
 }
 
 type Pair = {
-  id?: string;
-  name?: string;
-  symbol?: string;
-  asset?: string;
-  collateral?: string;
-  totalAssetBase?: number;
-  totalAssetElastic?: number;
+  id: string;
+  name: string;
+  symbol: string;
+  asset: string;
+  collateral: string;
+  totalAssetBase: number;
+  totalAssetElastic: number;
+  balanceUSD: number;
+  rewardPerBlock: number;
+  roiPerBlock: number;
+  roiPerYear: number;
 }
 
 export function clones({ masterAddress, chainId }?: {
