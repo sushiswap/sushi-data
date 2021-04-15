@@ -6,6 +6,7 @@ const { priceUSD: sushiPriceUSD } = require('./sushi')
 const { token: tokenInfo } = require('./exchange')
 const { ethPrice: ethPriceUSD } = require('./exchange')
 const { info: masterChefInfo } = require('./masterchef')
+const { pool: chefPool } = require('./masterchef')
 
 // accessed by chainId
 const ENDPOINTS = {
@@ -87,10 +88,12 @@ const kashiStakedInfo = {
   async callback(results) {
     return await Promise.all(results.kashiPairs.map(async (result) => {
       let asset = await tokenInfo({ token_address: result.asset.id });
-      let balanceUSD = (result.totalAssetBase / (10 ** result.asset.decimals)) * asset.derivedETH * results.ethUSD;
+      let chefPool = await masterchef.pool({ pool_address: result.id });
+      let stakedAmt = chefPool.slpBalance;
+      let balanceUSD = (result.stakedAmt / (10 ** result.asset.decimals)) * asset.derivedETH * results.ethUSD;
       let rewardPerBlock = ((1 / results.totalAP) * results.sushiPerBlock);
       let roiPerBlock = (rewardPerBlock * results.sushiUSD) / balanceUSD;
-      let roiPerYear = roiPerBlock * 6500 * 24 * 30 * 12
+      let roiPerYear = roiPerBlock * 6500 * 365
 
       return {
         id: result.id,
