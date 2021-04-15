@@ -13,9 +13,10 @@ type Pair = {
   assetDecimals: number;
   collateral: string;
   collateralSymbol: string;
-  collateralDecimals: number;s
+  collateralDecimals: number;
   totalAssetBase: number;
   totalAssetElastic: number;
+  totalAssetStaked: number;
   balanceUSD: number;
   rewardPerBlock: number;
   roiPerBlock: number;
