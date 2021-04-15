@@ -88,9 +88,10 @@ const kashiStakedInfo = {
   async callback(results) {
     return await Promise.all(results.kashiPairs.map(async (result) => {
       let asset = await tokenInfo({ token_address: result.asset.id });
-      let chefPool = await masterchef.pool({ pool_address: result.id });
-      let stakedAmt = chefPool.slpBalance;
-      let balanceUSD = (result.stakedAmt / (10 ** result.asset.decimals)) * asset.derivedETH * results.ethUSD;
+      let assetPool = await chefPool({ pool_address: result.id });
+      if (assetPool === undefined) { return }
+      let stakedAmt = assetPool.slpBalance;
+      let balanceUSD = (stakedAmt / (10 ** result.asset.decimals)) * asset.derivedETH * results.ethUSD;
       let rewardPerBlock = ((1 / results.totalAP) * results.sushiPerBlock);
       let roiPerBlock = (rewardPerBlock * results.sushiUSD) / balanceUSD;
       let roiPerYear = roiPerBlock * 6500 * 365
