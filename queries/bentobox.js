@@ -107,6 +107,7 @@ const kashiStakedInfo = {
         collateralDecimals: Number(result.collateral.decimals),
         totalAssetBase: Number(result.totalAssetBase),
         totalAssetElastic: Number(result.totalAssetElastic),
+        totalAssetStaked: Number(stakedAmt),
         assetDecimals: Number(result.asset.decimals),
         balanceUSD: balanceUSD,
         rewardPerBlock: rewardPerBlock,
