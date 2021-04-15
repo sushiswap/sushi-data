@@ -90,7 +90,7 @@ const kashiStakedInfo = {
       let asset = await tokenInfo({ token_address: result.asset.id });
       let assetPool = await chefPool({ pool_address: result.id });
       if (assetPool === undefined) { return }
-      let stakedAmt = assetPool.slpBalance;
+      let stakedAmt = assetPool.slpBalance * 1e18;
       let balanceUSD = (stakedAmt * asset.derivedETH * results.ethUSD) / (10 ** result.asset.decimals);
       let rewardPerBlock = ((1 / results.totalAP) * results.sushiPerBlock);
       let roiPerBlock = (rewardPerBlock * results.sushiUSD) / balanceUSD;
