@@ -91,7 +91,7 @@ const kashiStakedInfo = {
       let assetPool = await chefPool({ pool_address: result.id });
       if (assetPool === undefined) { return }
       let stakedAmt = assetPool.slpBalance;
-      let balanceUSD = (stakedAmt / (10 ** result.asset.decimals)) * asset.derivedETH * results.ethUSD;
+      let balanceUSD = (stakedAmt * asset.derivedETH * results.ethUSD) / (10 ** result.asset.decimals);
       let rewardPerBlock = ((1 / results.totalAP) * results.sushiPerBlock);
       let roiPerBlock = (rewardPerBlock * results.sushiUSD) / balanceUSD;
       let roiPerYear = roiPerBlock * 6500 * 365
