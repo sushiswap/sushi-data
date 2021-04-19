@@ -4,6 +4,7 @@ const ws = require('isomorphic-ws');
 const { SubscriptionClient } = require('subscriptions-transport-ws'); 
 
 const { request, gql } = require('graphql-request');
+const { factoryAddress } = require('../../constants');
 
 const { graphAPIEndpoints, graphWSEndpoints, factoryAddress, TWENTY_FOUR_HOURS } = require('./../../constants')
 const { timestampToBlock, blockToTimestamp } = require('./../../utils');
