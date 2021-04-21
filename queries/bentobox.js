@@ -7,6 +7,7 @@ const { token: tokenInfo } = require('./exchange')
 const { ethPrice: ethPriceUSD } = require('./exchange')
 const { info: masterChefInfo } = require('./masterchef')
 const { pool: chefPool } = require('./masterchef')
+const { pools: chefPools } = require('./masterchef')
 
 // accessed by chainId
 const ENDPOINTS = {
@@ -51,11 +52,16 @@ module.exports = {
 
     result.sushiUSD = await sushiPriceUSD();
     result.ethUSD = await ethPriceUSD();
+
     let masterChef = await masterChefInfo();
     result.totalAP = masterChef.totalAllocPoint;
     result.sushiPerBlock = masterChef.sushiPerBlock;
 
-    return kashiStakedInfo.callback(result)
+    let pools = await chefPools();
+    let onsen_pools = pools.map(pool => pool.pair)
+    let filtered_result = result.kashiPairs.filter(pair => onsen_pools.includes(pair.id))
+
+    return kashiStakedInfo.callback(filtered_result)
   },
 
 }
@@ -86,7 +92,7 @@ const kashiStakedInfo = {
   ],
 
   async callback(results) {
-    return await Promise.all(results.kashiPairs.map(async (result) => {
+    return await Promise.all(results.map(async (result) => {
       let asset = await tokenInfo({ token_address: result.asset.id });
       let assetPool = await chefPool({ pool_address: result.id });
       if (assetPool === undefined) { return }
