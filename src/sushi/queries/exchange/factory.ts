@@ -1,5 +1,3 @@
-import pageResults from 'graph-results-pager';
-
 import ws from 'isomorphic-ws';
 import { SubscriptionClient } from 'subscriptions-transport-ws'; 
 
@@ -15,7 +13,7 @@ import {
 } from '../../../../types';
 
 import { Factory } from '../../../../types/subgraphs/exchange';
-import { fromUnixTime, getUnixTime, subWeeks } from 'date-fns';
+import { fromUnixTime, getUnixTime } from 'date-fns';
 
 
 
@@ -95,7 +93,7 @@ export async function factoryChart({minTimestamp = undefined, maxTimestamp = und
     result = Object.keys(result)
         .map(key => ({...factory_callback(result[key]), timestamp: Number(key.split("timestamp")[1])}))
         .sort((a, b) => (a.timestamp) - (b.timestamp))
-        .filter(e => Object.keys(e).length > 1)
+        .filter(e => Object.keys(e).length > 1); // Filters empty results (1 because there will always be a timestamp present)
 
 
     return factoryChart_callback(result).slice(2).slice(undefined, max);

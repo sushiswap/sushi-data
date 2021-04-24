@@ -6,7 +6,6 @@ import { SubscriptionClient } from 'subscriptions-transport-ws';
 import { request, gql } from 'graphql-request';
 
 import {
-    subWeeks,
     getUnixTime,
     fromUnixTime
 } from "date-fns";
@@ -14,16 +13,16 @@ import {
 import { graphAPIEndpoints, graphWSEndpoints, TWENTY_FOUR_HOURS } from '../../../constants';
 import { timestampToBlock, timestampsToBlocks, blockToTimestamp } from '../../../utils';
 
-import { ethPrice } from'./eth';
+import { ethPrice, ethPriceChart } from'./eth';
 
 import { 
     Arg1,
     Arg2,
-    Arg4,
+    Arg5,
     Awaited
 } from '../../../../types';
 
-import { Token, TokenDayData } from '../../../../types/subgraphs/exchange';
+import { Token } from '../../../../types/subgraphs/exchange';
 
 
 
@@ -48,39 +47,42 @@ export async function token({block = undefined, timestamp = undefined, address}:
 
 
 
-export async function token24h({block = undefined, timestamp = undefined, address}: (
-    Arg1 & {address: string}
+export async function tokenChange({block = undefined, timestamp = undefined, spacing = TWENTY_FOUR_HOURS, address}: (
+    Arg1 & {
+        spacing?: number;
+        address: string
+    }
 )) {
     if(!address) { throw new Error("sushi-data: Token address undefined"); }
 
     let timestampNow = timestamp ? timestamp : block ? await blockToTimestamp(block) : (Math.floor(Date.now() / 1000));
-    const timestamp24ago = timestampNow - TWENTY_FOUR_HOURS;
-    const timestamp48ago = timestamp24ago - TWENTY_FOUR_HOURS;
+    const timestamp1ago = timestampNow - spacing;
+    const timestamp2ago = timestamp1ago - spacing;
 
     block = timestamp ? await timestampToBlock(timestamp) : block;
-    const [block24ago, block48ago] = await Promise.all([
-        timestampToBlock(timestamp24ago),
-        timestampToBlock(timestamp48ago)
+    const [block1ago, block2ago] = await Promise.all([
+        timestampToBlock(timestamp1ago),
+        timestampToBlock(timestamp2ago)
     ]);
 
-    const [result, result24ago, result48ago] = await Promise.all([
+    const [result, result1ago, result2ago] = await Promise.all([
         token({block: block, address}),
-        token({block: block24ago, address}),
-        token({block: block48ago, address})
+        token({block: block1ago, address}),
+        token({block: block2ago, address})
     ]);
 
-    const [ethPriceUSD, ethPriceUSD24ago] = await Promise.all([
+    const [ethPriceUSD, ethPriceUSD1ago] = await Promise.all([
         ethPrice({block: block}),
-        ethPrice({block: block24ago})
+        ethPrice({block: block1ago})
     ]);
 
-    return token_callback24h([result], [result24ago], [result48ago], ethPriceUSD, ethPriceUSD24ago)[0];
+    return tokenChange_callback([result], [result1ago], [result2ago], ethPriceUSD, ethPriceUSD1ago)[0];
 }
 
 
 
-export async function tokenHourData({minTimestamp = undefined, maxTimestamp = undefined, minBlock = undefined, maxBlock = undefined, address}: (
-    Arg4 & {address: string}
+export async function tokenChart({minTimestamp = undefined, maxTimestamp = undefined, minBlock = undefined, maxBlock = undefined, min = 10, max = undefined, spacing = TWENTY_FOUR_HOURS, address}: (
+    Arg5 & {address: string}
 )) {
     if(!address) { throw new Error("sushi-data: Token address undefined"); }
     
@@ -88,58 +90,38 @@ export async function tokenHourData({minTimestamp = undefined, maxTimestamp = un
     maxTimestamp = maxBlock ? await blockToTimestamp(maxBlock) : maxTimestamp;
 
     const endTime = maxTimestamp ? fromUnixTime(maxTimestamp) : new Date();
-    let time = minTimestamp ? minTimestamp : getUnixTime(subWeeks(endTime, 1));
+    let time = (minTimestamp ? minTimestamp : Math.floor(Date.now() / 1000) - spacing * min) - spacing * 2; // neccessary for some of the calcs, the two results will be cut off
 
-    // create an array of hour start times until we reach current hour
     const timestamps: number[] = [];
-    while (time <= getUnixTime(endTime) - 3600) {
-        timestamps.push(time);
-        time += 3600;
+    while (time <= getUnixTime(endTime) - spacing) {
+        timestamps.push(time + spacing);
+        time += spacing;
     }
 
-    let blocks = await timestampsToBlocks(timestamps);
+    const blocks = await timestampsToBlocks(timestamps);
 
     const query = (
         gql`{
             ${blocks.map((block, i) => (gql`
-                timestamp${timestamps[i]}: token(id: "${address.toLowerCase()}", block: {number: ${block}}) {
-                    ${token_properties.toString()}
-            }`))}
+                timestamp${timestamps[i]}: 
+                    token(id: "${address.toLowerCase()}", block: {number: ${block}}) {
+                        ${token_properties.toString()}
+                    }
+            `))}
         }`
     );
 
-    let result = await request(graphAPIEndpoints.exchange, query)
+    let [result, ethPrices] = await Promise.all([
+        request(graphAPIEndpoints.exchange, query),
+        ethPriceChart({minTimestamp, maxTimestamp, minBlock, maxBlock, min, max, spacing})
+    ])
+
     result = Object.keys(result)
-        .map(key => ({...result[key], timestamp: Number(key.split("timestamp")[1])}))
-        .sort((a, b) => (a.timestamp) - (b.timestamp));
+        .map(key => ({...token_callback([result[key]])[0], timestamp: Number(key.split("timestamp")[1])}))
+        .sort((a, b) => (a.timestamp) - (b.timestamp))
+        .filter(e => Object.keys(e).length > 1); // Filters empty results (1 because there will always be a timestamp present)
 
-    return token_callbackHourData(result);
-}
-
-
-
-export async function tokenDayData({minTimestamp = undefined, maxTimestamp = undefined, minBlock = undefined, maxBlock = undefined, address}: (
-    Arg4 & {address: string;}
-)) {
-    if(!address) { throw new Error("sushi-data: Token address undefined"); }
-    
-    const results = await pageResults({
-        api: graphAPIEndpoints.exchange,
-        query: {
-            entity: 'tokenDayDatas',
-            selection: {
-                orderDirection: 'desc',
-                where: {
-                    token: `\\"${address.toLowerCase()}\\"`,
-                    date_gte: minTimestamp || (minBlock ? await blockToTimestamp(minBlock!) : undefined),
-                    date_lte: maxTimestamp || (maxBlock ? await blockToTimestamp(maxBlock!) : undefined),
-                },
-            },
-            properties: token_propertiesDayData
-        }
-    })
-
-    return token_callbackDayData(results);
+    return tokenChart_callback(result, ethPrices).slice(2).slice(undefined, max);
 }
 
 
@@ -194,7 +176,7 @@ export async function tokens({block = undefined, timestamp = undefined, max = un
 
 
 
-export async function tokens24h({block = undefined, timestamp = undefined, max = undefined}: Arg2 = {}) {
+export async function tokensChange({block = undefined, timestamp = undefined, max = undefined}: Arg2 = {}) {
     const timestampNow = timestamp ? timestamp : block ? await blockToTimestamp(block) : (Math.floor(Date.now() / 1000));
     const timestamp24ago = timestampNow! - TWENTY_FOUR_HOURS;
     const timestamp48ago = timestamp24ago - TWENTY_FOUR_HOURS;
@@ -216,7 +198,7 @@ export async function tokens24h({block = undefined, timestamp = undefined, max =
         ethPrice({block: block24ago})
     ]);
 
-    return token_callback24h(results, results24ago, results48ago, ethPriceUSD, ethPriceUSD24ago);
+    return tokenChange_callback(results, results24ago, results48ago, ethPriceUSD, ethPriceUSD24ago);
 }
 
 
@@ -251,12 +233,11 @@ export function observeTokens() {
 
 export default {
     token,
-    token24h,
-    tokenHourData,
-    tokenDayData,
+    tokenChange,
+    tokenChart,
     observeToken,
     tokens,
-    tokens24h,
+    tokensChange,
     observeTokens
 }
 
@@ -278,111 +259,105 @@ const token_properties = [
 
 function token_callback(results: Token[]) {
     return results
-        .map(({ id, symbol, name, decimals, totalSupply, volume, volumeUSD, untrackedVolumeUSD, txCount, liquidity, derivedETH }) => ({
-            id: String(id),
-            symbol: String(symbol),
-            name: String(name),
-            decimals: Number(decimals),
-            totalSupply: Number(totalSupply),
-            volume: Number(volume),
-            volumeUSD: Number(volumeUSD),
-            untrackedVolumeUSD: Number(untrackedVolumeUSD),
-            txCount: Number(txCount),
-            liquidity: Number(liquidity),
-            derivedETH: Number(derivedETH)
+        .map(result => ({
+            id: String(result.id),
+            symbol: String(result.symbol),
+            name: String(result.name),
+            decimals: Number(result.decimals),
+            totalSupply: Number(result.totalSupply),
+            volume: Number(result.volume),
+            volumeUSD: Number(result.volumeUSD),
+            untrackedVolumeUSD: Number(result.untrackedVolumeUSD),
+            txCount: Number(result.txCount),
+            liquidity: Number(result.liquidity),
+            derivedETH: Number(result.derivedETH)
         }))
     .sort((a, b) => b.volumeUSD - a.volumeUSD);
 };
 
 
 
-function token_callback24h(
+function tokenChange_callback(
         results: Awaited<ReturnType<typeof token>>[],
-        results24h: Awaited<ReturnType<typeof token>>[],
-        results48h: Awaited<ReturnType<typeof token>>[], 
+        results1ago: Awaited<ReturnType<typeof token>>[],
+        results2ago: Awaited<ReturnType<typeof token>>[], 
         ethPriceUSD: number, 
-        ethPriceUSD24ago: number
+        ethPriceUSD1ago: number
     ) {
 
     return results.map(result => {
-        const result24h = results24h.find(e => e.id === result.id) || result;
-        const result48h = results48h.find(e => e.id === result.id) || result;
+        const result1ago = results1ago.find(e => e.id === result.id) || result;
+        const result2ago = results2ago.find(e => e.id === result.id) || result;
 
         return ({
-            ...result,
+            id: result.id,
+            symbol: result.symbol,
+            name: result.name,
+            decimals: result.decimals,
+
+            totalSupply: result.totalSupply,
+            totalSupplyChange: result.totalSupply / result1ago.totalSupply * 100 - 100,
+            totalSupplyChangeCount: result.totalSupply - result1ago.totalSupply,
+
+            volume: result.volume,
+            volumePeriod: result.volume - result1ago.volume,
+            volumeChange: (result.volume - result1ago.volume) / (result1ago.volume - result2ago.volume) * 100 - 100,
+            volumeChangeCount: (result.volume - result1ago.volume) - (result1ago.volume - result2ago.volume),
             
-            priceUSD: result.derivedETH * ethPriceUSD,
-            priceUSDChange: (result.derivedETH * ethPriceUSD) / (result24h.derivedETH * ethPriceUSD24ago) * 100 - 100,
-            priceUSDChangeCount: (result.derivedETH * ethPriceUSD) - (result24h.derivedETH * ethPriceUSD24ago),
-            
+            liquidity: result.liquidity,
+            liquidityChange: result.liquidity / result1ago.liquidity * 100 - 100,
+            liquidityChangeCount: result.liquidity - result1ago.liquidity,
+
             liquidityUSD: result.liquidity * result.derivedETH * ethPriceUSD,
-            liquidityUSDChange: (result.liquidity * result.derivedETH * ethPriceUSD) / (result24h.liquidity * result24h.derivedETH * ethPriceUSD24ago) * 100 - 100,
-            liquidityUSDChangeCount: result.liquidity * result.derivedETH * ethPriceUSD - result24h.liquidity * result24h.derivedETH * ethPriceUSD24ago,
+            liquidityUSDChange: (result.liquidity * result.derivedETH * ethPriceUSD) / (result1ago.liquidity * result1ago.derivedETH * ethPriceUSD1ago) * 100 - 100,
+            liquidityUSDChangeCount: result.liquidity * result.derivedETH * ethPriceUSD - result1ago.liquidity * result1ago.derivedETH * ethPriceUSD1ago,
             
             liquidityETH: result.liquidity * result.derivedETH,
-            liquidityETHChange: (result.liquidity * result.derivedETH) / (result24h.liquidity * result24h.derivedETH) * 100 - 100,
-            liquidityETHChangeCount: result.liquidity * result.derivedETH - result24h.liquidity * result24h.derivedETH,
+            liquidityETHChange: (result.liquidity * result.derivedETH) / (result1ago.liquidity * result1ago.derivedETH) * 100 - 100,
+            liquidityETHChangeCount: result.liquidity * result.derivedETH - result1ago.liquidity * result1ago.derivedETH,
             
-            volumeUSDOneDay: result.volumeUSD - result24h.volumeUSD,
-            volumeUSDChange: (result.volumeUSD - result24h.volumeUSD) / (result24h.volumeUSD - result48h.volumeUSD) * 100 - 100,
-            volumeUSDChangeCount: (result.volumeUSD - result24h.volumeUSD) - (result24h.volumeUSD - result48h.volumeUSD),
+            volumeUSD: result.volumeUSD,
+            volumeUSDPeriod: result.volumeUSD - result1ago.volumeUSD,
+            volumeUSDChange: (result.volumeUSD - result1ago.volumeUSD) / (result1ago.volumeUSD - result2ago.volumeUSD) * 100 - 100,
+            volumeUSDChangeCount: (result.volumeUSD - result1ago.volumeUSD) - (result1ago.volumeUSD - result2ago.volumeUSD),
             
-            untrackedVolumeUSDOneDay: result.untrackedVolumeUSD - result24h.untrackedVolumeUSD,
-            untrackedVolumeUSDChange: (result.untrackedVolumeUSD - result24h.untrackedVolumeUSD) / (result24h.untrackedVolumeUSD - result48h.untrackedVolumeUSD) * 100 - 100,
-            untrackedVolumeUSDChangeCount: (result.untrackedVolumeUSD - result24h.untrackedVolumeUSD) - (result24h.untrackedVolumeUSD - result48h.untrackedVolumeUSD),
+            untrackedVolumeUSD: result.untrackedVolumeUSD,
+            untrackedVolumeUSDOneDay: result.untrackedVolumeUSD - result1ago.untrackedVolumeUSD,
+            untrackedVolumeUSDChange: (result.untrackedVolumeUSD - result1ago.untrackedVolumeUSD) / (result1ago.untrackedVolumeUSD - result2ago.untrackedVolumeUSD) * 100 - 100,
+            untrackedVolumeUSDChangeCount: (result.untrackedVolumeUSD - result1ago.untrackedVolumeUSD) - (result1ago.untrackedVolumeUSD - result2ago.untrackedVolumeUSD),
             
-            txCountOneDay: result.txCount - result24h.txCount,
-            txCountChange: (result.txCount - result24h.txCount) / (result24h.txCount - result48h.txCount) * 100 - 100,
-            txCountChangeCount: (result.txCount - result24h.txCount) - (result24h.txCount - result48h.txCount),
+            txCount: result.txCount,
+            txCountPeriod: result.txCount - result1ago.txCount,
+            txCountChange: (result.txCount - result1ago.txCount) / (result1ago.txCount - result2ago.txCount) * 100 - 100,
+            txCountChangeCount: (result.txCount - result1ago.txCount) - (result1ago.txCount - result2ago.txCount),
+
+            derivedETH: result.derivedETH,
+            derivedETHChange: result.derivedETH / result1ago.derivedETH * 100 - 100,
+            derivedETHChangeCount: result.derivedETH - result1ago.derivedETH,
+
+            priceUSD: result.derivedETH * ethPriceUSD,
+            priceUSDChange: (result.derivedETH * ethPriceUSD) / (result1ago.derivedETH * ethPriceUSD1ago) * 100 - 100,
+            priceUSDChangeCount: (result.derivedETH * ethPriceUSD) - (result1ago.derivedETH * ethPriceUSD1ago),
     })});
 };
 
 
 
-function token_callbackHourData(results: (Token & {timestamp: number})[]) {
-    return results.map(result => ({
-        id: String(result.id),
-        symbol: String(result.symbol),
-        name: String(result.name),
-        decimals: Number(result.decimals),
-        totalSupply: Number(result.totalSupply),
-        volume: Number(result.volume),
-        volumeUSD: Number(result.volumeUSD),
-        untrackedVolumeUSD: Number(result.untrackedVolumeUSD),
-        txCount: Number(result.txCount),
-        liquidity: Number(result.liquidity),
-        derivedETH: Number(result.derivedETH),
-        timestamp: Number(result.timestamp)
-    }));
-};
+function tokenChart_callback(
+    results: (Awaited<ReturnType<typeof token>> & {timestamp: number})[],
+    ethPrices: Awaited<ReturnType<typeof ethPriceChart>>
+    ) {
 
+    return results.map((result, i) => {
+        const result1ago = results[i-1] ?? result;
+        const result2ago = results[i-2] ?? result1ago;
 
+        const ethPriceUSD = ethPrices.find(ethPrice => ethPrice.timestamp === result.timestamp)?.priceUSD ?? 0;
+        const ethPriceUSD1ago = ethPrices.find(ethPrice => ethPrice.timestamp === result1ago.timestamp)?.priceUSD ?? ethPriceUSD;
 
-const token_propertiesDayData = [
-    'id',
-    'date',
-    'volume',
-    'volumeETH',
-    'volumeUSD',
-    'liquidity',
-    'liquidityETH',
-    'liquidityUSD',
-    'priceUSD',
-    'txCount'
-];
-
-function token_callbackDayData(results: TokenDayData[]) {
-    return results.map(result => ({
-        id: String(result.id),
-        date: new Date(Number(result.date) * 1000),
-        timestamp: Number(result.date),
-        volume: Number(result.volume),
-        volumeETH: Number(result.volumeETH),
-        volumeUSD: Number(result.volumeUSD),
-        liquidity: Number(result.liquidity),
-        liquidityETH: Number(result.liquidityETH),
-        liquidityUSD: Number(result.liquidityUSD),
-        priceUSD: Number(result.priceUSD),
-        txCount: Number(result.txCount)
-    }));
+        return ({
+            ...tokenChange_callback([result], [result1ago], [result2ago], ethPriceUSD, ethPriceUSD1ago)[0],
+            timestamp: result.timestamp
+        });
+    })
 };

@@ -4,17 +4,16 @@ import { SubscriptionClient } from 'subscriptions-transport-ws';
 import { request, gql } from 'graphql-request';
 
 import {
-    subWeeks,
     getUnixTime,
     fromUnixTime
 } from "date-fns";
 
-import { graphAPIEndpoints, graphWSEndpoints } from '../../../constants';
+import { graphAPIEndpoints, graphWSEndpoints, TWENTY_FOUR_HOURS } from '../../../constants';
 import { timestampToBlock, timestampsToBlocks, blockToTimestamp } from '../../../utils';
 
 import {
     Arg1,
-    Arg3,
+    Arg5,
 } from '../../../../types';
 
 import { Bundle } from '../../../../types/subgraphs/exchange';
@@ -37,21 +36,20 @@ export async function ethPrice({block = undefined, timestamp = undefined}: Arg1 
 
 
 
-export async function ethPriceHourly({minTimestamp = undefined, maxTimestamp = undefined, minBlock = undefined, maxBlock = undefined}: Arg3 = {}) {
-    minTimestamp = minBlock ? await blockToTimestamp(minBlock!) : minTimestamp;
-    maxTimestamp = maxBlock ? await blockToTimestamp(maxBlock!) : maxTimestamp;
+export async function ethPriceChart({minTimestamp = undefined, maxTimestamp = undefined, minBlock = undefined, maxBlock = undefined, min = 10, max = undefined, spacing = TWENTY_FOUR_HOURS}: Arg5 = {}) {
+    minTimestamp = minBlock ? await blockToTimestamp(minBlock) : minTimestamp;
+    maxTimestamp = maxBlock ? await blockToTimestamp(maxBlock) : maxTimestamp;
 
-    const endTime = maxTimestamp ? fromUnixTime(maxTimestamp!) : new Date();
-    let time = minTimestamp ? minTimestamp : getUnixTime(subWeeks(endTime, 1));
+    const endTime = maxTimestamp ? fromUnixTime(maxTimestamp) : new Date();
+    let time = (minTimestamp ? minTimestamp : Math.floor(Date.now() / 1000) - spacing * min) - spacing * 1; // neccessary for some of the calcs, the two results will be cut off
 
-    // create an array of hour start times until we reach current hour
     const timestamps: number[] = [];
-    while (time <= getUnixTime(endTime) - 3600) {
-        timestamps.push(time);
-        time += 3600;
+    while (time <= getUnixTime(endTime) - spacing) {
+        timestamps.push(time + spacing);
+        time += spacing;
     }
 
-    let blocks = await timestampsToBlocks(timestamps);
+    const blocks = await timestampsToBlocks(timestamps);
 
     const query = (
         gql`{
@@ -65,10 +63,11 @@ export async function ethPriceHourly({minTimestamp = undefined, maxTimestamp = u
     let result = await request(graphAPIEndpoints.exchange, query)
 
     result = Object.keys(result)
-        .map(key => ({...result[key], timestamp: key.split("timestamp")[1]}))
-        .sort((a, b) => Number(a.timestamp) - (b.timestamp));
+        .map(key => ({priceUSD: ethPrice_callback(result[key]), timestamp: Number(key.split("timestamp")[1])}))
+        .sort((a, b) => a.timestamp - b.timestamp)
+        .filter(e => Object.keys(e).length > 1); // Filters empty results (1 because there will always be a timestamp present)
 
-    return ethPrice_callbackHourly(result);
+    return ethPriceChart_callback(result).slice(1).slice(undefined, max);
 }
 
 
@@ -103,7 +102,7 @@ export function observeEthPrice() {
 
 export default {
     ethPrice,
-    ethPriceHourly,
+    ethPriceChart,
     observeEthPrice
 }
 
@@ -117,9 +116,16 @@ function ethPrice_callback(results: Bundle) {
     return Number(results.ethPrice);
 }
 
-function ethPrice_callbackHourly(results: (Bundle & {timestamp: string})[]) {
-    return results.map(result => ({
-        timestamp: Number(result.timestamp),
-        priceUSD: Number(result.ethPrice)
-    }))
+function ethPriceChart_callback(results: {priceUSD: number, timestamp: string}[]) {
+    return results.map((result, i) => {
+        const result1ago = results[i-1] ?? result;
+
+        return ({
+            priceUSD: Number(result.priceUSD),
+            priceUSDChange: Number(result.priceUSD) / Number(result1ago.priceUSD) * 100 - 100,
+            priceUSDChangeCount: Number(result.priceUSD) - Number(result1ago.priceUSD),
+
+            timestamp: Number(result.timestamp)
+        })
+    })
 }

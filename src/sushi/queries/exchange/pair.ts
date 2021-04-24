@@ -6,7 +6,6 @@ import { SubscriptionClient } from 'subscriptions-transport-ws';
 import { request, gql } from 'graphql-request';
 
 import {
-    subWeeks,
     getUnixTime,
     fromUnixTime
 } from "date-fns";
@@ -14,16 +13,16 @@ import {
 import { graphAPIEndpoints, graphWSEndpoints, TWENTY_FOUR_HOURS } from '../../../constants';
 import { timestampToBlock, timestampsToBlocks, blockToTimestamp } from '../../../utils';
 
-import { ethPrice } from'./eth';
+import { ethPrice, ethPriceChart } from'./eth';
 
 import type {
     Arg1,
     Arg2,
-    Arg4,
+    Arg5,
     Awaited,
 } from './../../../../types'
 
-import { Pair, PairDayData } from '../../../../types/subgraphs/exchange';
+import { Pair } from '../../../../types/subgraphs/exchange';
 
 
 
@@ -48,98 +47,81 @@ export async function pair({block = undefined, timestamp = undefined, address}: 
 
 
 
-export async function pair24h({block = undefined, timestamp = undefined, address}: (
-    Arg1 & {address: string}
+export async function pairChange({block = undefined, timestamp = undefined, spacing= TWENTY_FOUR_HOURS, address}: (
+    Arg1 & {
+        spacing?: number;
+        address: string
+    }
 )) {
     if(!address) { throw new Error("sushi-data: Pair address undefined"); }
     
     let timestampNow = timestamp ? timestamp : block ? await blockToTimestamp(block) : (Math.floor(Date.now() / 1000));
-    const timestamp24ago = timestampNow - TWENTY_FOUR_HOURS;
-    const timestamp48ago = timestamp24ago - TWENTY_FOUR_HOURS;
+    const timestamp1ago = timestampNow - spacing;
+    const timestamp2ago = timestamp1ago - spacing;
 
     block = timestamp ? await timestampToBlock(timestamp) : block;
-    const [block24ago, block48ago] = await Promise.all([
-        timestampToBlock(timestamp24ago),
-        timestampToBlock(timestamp48ago)
+    const [block1ago, block2ago] = await Promise.all([
+        timestampToBlock(timestamp1ago),
+        timestampToBlock(timestamp2ago)
     ]);
 
-    const [result, result24ago, result48ago] = await Promise.all([
+    const [result, result1ago, result2ago] = await Promise.all([
         pair({block: block, address}),
-        pair({block: block24ago, address}),
-        pair({block: block48ago, address})
+        pair({block: block1ago, address}),
+        pair({block: block2ago, address})
     ])
 
-    const [ethPriceUSD, ethPriceUSD24ago] = await Promise.all([
+    const [ethPriceUSD, ethPriceUSD1ago] = await Promise.all([
         ethPrice({block: block}),
-        ethPrice({block: block24ago})
+        ethPrice({block: block1ago})
     ]);
 
-    return pair_callback24h([result], [result24ago], [result48ago], ethPriceUSD, ethPriceUSD24ago)[0];
+    return pairChange_callback([result], [result1ago], [result2ago], ethPriceUSD, ethPriceUSD1ago)[0];
 }
 
 
 
-export async function pairHourData({minTimestamp = undefined, maxTimestamp = undefined, minBlock = undefined, maxBlock = undefined, address}: (
-    Arg4 & {address: string}
+export async function pairChart({minTimestamp = undefined, maxTimestamp = undefined, minBlock = undefined, maxBlock = undefined, min = 10, max = undefined, spacing = TWENTY_FOUR_HOURS, address}: (
+    Arg5 & {address: string}
 )) {
     if(!address) { throw new Error("sushi-data: Pair address undefined"); }
     
-    minTimestamp = minBlock ? await blockToTimestamp(minBlock!) : minTimestamp;
-    maxTimestamp = maxBlock ? await blockToTimestamp(maxBlock!) : maxTimestamp;
+    minTimestamp = minBlock ? await blockToTimestamp(minBlock) : minTimestamp;
+    maxTimestamp = maxBlock ? await blockToTimestamp(maxBlock) : maxTimestamp;
 
     const endTime = maxTimestamp ? fromUnixTime(maxTimestamp) : new Date();
-    let time = minTimestamp ? minTimestamp : getUnixTime(subWeeks(endTime, 1));
+    let time = (minTimestamp ? minTimestamp : Math.floor(Date.now() / 1000) - spacing * min) - spacing * 2; // neccessary for some of the calcs, the two results will be cut off
 
-    // create an array of hour start times until we reach current hour
     const timestamps: number[] = [];
-    while (time <= getUnixTime(endTime) - 3600) {
-        timestamps.push(time);
-        time += 3600;
+    while (time <= getUnixTime(endTime) - spacing) {
+        timestamps.push(time + spacing);
+        time += spacing;
     }
 
-    let blocks = await timestampsToBlocks(timestamps);
+    const blocks = await timestampsToBlocks(timestamps);
 
     const query = (
         gql`{
             ${blocks.map((block, i) => (gql`
-                timestamp${timestamps[i]}: pair(id: "${address.toLowerCase()}", block: {number: ${block}}) {
-                    ${pair_properties.toString()}
-            }`))}
+                timestamp${timestamps[i]}: 
+                    pair(id: "${address.toLowerCase()}", block: {number: ${block}}) {
+                        ${pair_properties.toString()}
+                    }
+            `))}
         }`
     );
 
-    let result = await request(graphAPIEndpoints.exchange, query)
+    let [result, ethPrices] = await Promise.all([
+        request(graphAPIEndpoints.exchange, query),
+        ethPriceChart({minTimestamp, maxTimestamp, minBlock, maxBlock, min, max, spacing})
+    ])
+
     result = Object.keys(result)
-        .map(key => ({...result[key], timestamp: Number(key.split("timestamp")[1])}))
-        .sort((a, b) => (a.timestamp) - (b.timestamp));
+        .map(key => ({...pair_callback([result[key]])[0], timestamp: Number(key.split("timestamp")[1])}))
+        .sort((a, b) => (a.timestamp) - (b.timestamp))
+        .filter(e => Object.keys(e).length > 1); // Filters empty results (1 because there will always be a timestamp present)
 
-    return pair_callbackHourData(result);
-}
-
-
-
-export async function pairDayData({minTimestamp = undefined, maxTimestamp = undefined, minBlock = undefined, maxBlock = undefined, address}: (
-    Arg4 & {address: string}
-)) {
-    if(!address) { throw new Error("sushi-data: Pair address undefined"); }
-    
-    const results = await pageResults({
-        api: graphAPIEndpoints.exchange,
-        query: {
-            entity: 'pairDayDatas',
-            selection: {
-                orderDirection: 'desc',
-                where: {
-                    pair: `\\"${address.toLowerCase()}\\"`,
-                    date_gte: minTimestamp || (minBlock ? await blockToTimestamp(minBlock) : undefined),
-                    date_lte: maxTimestamp || (maxBlock ? await blockToTimestamp(maxBlock) : undefined),
-                },
-            },
-            properties: pair_propertiesDayData
-        }
-    })
-
-    return pair_callbackDayData(results);
+    return pairChart_callback(result, ethPrices).slice(2).slice(undefined, max);
 }
 
 
@@ -214,27 +196,31 @@ export async function pairs({block = undefined, timestamp = undefined, max = und
 
 
 
-export async function pairs24h({block = undefined, timestamp = undefined, max = undefined}: Arg2 = {}) {
+export async function pairsChange({block = undefined, timestamp = undefined, spacing = TWENTY_FOUR_HOURS}: (
+    Arg1 & {spacing?: number}
+) = {}) {
     let timestampNow = timestamp ? timestamp : block ? await blockToTimestamp(block) : (Math.floor(Date.now() / 1000));
-    const timestamp24ago = timestampNow - TWENTY_FOUR_HOURS;
-    const timestamp48ago = timestamp24ago - TWENTY_FOUR_HOURS;
+    const timestamp1ago = timestampNow - spacing;
+    const timestamp2ago = timestamp1ago - spacing;
 
     block = timestamp ? await timestampToBlock(timestamp) : block;
-    const block24ago = await timestampToBlock(timestamp24ago);
-    const block48ago = await timestampToBlock(timestamp48ago);
-
-    const [results, results24ago, results48ago] = await Promise.all([
-        pairs({block: block, max}),
-        pairs({block: block24ago, max}),
-        pairs({block: block48ago, max})
+    const [block1ago, block2ago] = await Promise.all([
+        timestampToBlock(timestamp1ago),
+        timestampToBlock(timestamp2ago)
     ]);
 
-    const [ethPriceUSD, ethPriceUSD24ago] = await Promise.all([
+    const [results, results1ago, results2ago] = await Promise.all([
+        pairs({block: block}),
+        pairs({block: block1ago}),
+        pairs({block: block2ago})
+    ]);
+
+    const [ethPriceUSD, ethPriceUSD1ago] = await Promise.all([
         ethPrice({block: block}),
-        ethPrice({block: block24ago})
+        ethPrice({block: block1ago})
     ]);
 
-    return pair_callback24h(results, results24ago, results48ago, ethPriceUSD, ethPriceUSD24ago);
+    return pairChange_callback(results, results1ago, results2ago, ethPriceUSD, ethPriceUSD1ago);
 }
 
 
@@ -269,12 +255,11 @@ export function observePairs () {
 
 export default {
     pair,
-    pair24h,
-    pairHourData,
-    pairDayData,
+    pairChange,
+    pairChart,
     observePair,
     pairs,
-    pairs24h,
+    pairsChange,
     observePairs
 }
 
@@ -337,100 +322,134 @@ function pair_callback(results: Pair[]) {
 
 
 
-function pair_callback24h(
-        results: Awaited<ReturnType<typeof pairs>>,
-        results24h: Awaited<ReturnType<typeof pairs>>, 
-        results48h: Awaited<ReturnType<typeof pairs>>, 
+function pairChange_callback(
+        results: Awaited<ReturnType<typeof pair>>[],
+        results1ago: Awaited<ReturnType<typeof pair>>[], 
+        results2ago: Awaited<ReturnType<typeof pair>>[], 
         ethPriceUSD: number, 
-        ethPriceUSD24ago: number
+        ethPriceUSD1ago: number
     ) {
 
     return results.map(result => {
-        const result24h = results24h.find(e => e.id === result.id) || result;
-        const result48h = results48h.find(e => e.id === result.id) || result;
+        const result1ago = results1ago.find(e => e.id === result.id) || result;
+        const result2ago = results2ago.find(e => e.id === result.id) || result;
 
         return ({
-            ...result,
+            id: result.id,
+            token0: { 
+                id: result.token0.id,
+                name: result.token0.name,
+                symbol: result.token0.symbol,
+                
+                totalSupply: result.token0.totalSupply,
+                totalSupplyChange: result.token0.totalSupply / result1ago.token0.totalSupply * 100 - 100,
+                totalSupplyChangeCount: result.token0.totalSupply - result1ago.token0.totalSupply,
+                
+                derivedETH: result.token0.derivedETH,
+                derivedETHChange: result.token0.derivedETH / result1ago.token0.derivedETH * 100 - 100,
+                derivedETHChangeCount: result.token0.derivedETH - result1ago.token0.derivedETH,
+
+                priceUSD: result.token0.derivedETH * ethPriceUSD,
+                priceUSDChange: (result.token0.derivedETH * ethPriceUSD) / (result1ago.token0.derivedETH * ethPriceUSD1ago) * 100 - 100,
+                priceUSDChangeCount: (result.token0.derivedETH * ethPriceUSD) - (result1ago.token0.derivedETH * ethPriceUSD1ago),
+            },
+            token1: { 
+                id: result.token1.id,
+                name: result.token1.name,
+                symbol: result.token1.symbol,
+
+                totalSupply: result.token1.totalSupply,
+                totalSupplyChange: result.token1.totalSupply / result1ago.token1.totalSupply * 100 - 100,
+                totalSupplyChangeCount: result.token1.totalSupply - result1ago.token1.totalSupply,
+
+                derivedETH: result.token1.derivedETH,
+                derivedETHChange: result.token1.derivedETH / result1ago.token1.derivedETH * 100 - 100,
+                derivedETHChangeCount: result.token1.derivedETH - result1ago.token1.derivedETH,
+
+                priceUSD: result.token1.derivedETH * ethPriceUSD,
+                priceUSDChange: (result.token1.derivedETH * ethPriceUSD) / (result1ago.token1.derivedETH * ethPriceUSD1ago) * 100 - 100,
+                priceUSDChangeCount: (result.token1.derivedETH * ethPriceUSD) - (result1ago.token1.derivedETH * ethPriceUSD1ago),
+            },
+
+            totalSupply: result.totalSupply,
+            totalSupplyChange: result.totalSupply / result1ago.totalSupply * 100 - 100,
+            totalSupplyChangeCount: result.totalSupply - result1ago.totalSupply,
+
+            token0Price: result.token0Price,
+            token0PriceChange: result.token0Price / result1ago.token0Price * 100 - 100,
+            token0PriceChangeCount: result.token0Price - result1ago.token0Price,
+
+            token1Price: result.token1Price,
+            token1PriceChange: result.token1Price / result1ago.token1Price * 100 - 100,
+            token1PriceChangeCount: result.token1Price - result1ago.token1Price,
+
+            volumeToken0: result.volumeToken0,
+            volumeToken0Change: result.volumeToken0 / result1ago.volumeToken0 * 100 - 100,
+            volumeToken0ChangeCount: result.volumeToken0 - result1ago.volumeToken0,
+
+            volumeToken1: result.volumeToken1,
+            volumeToken1Change: result.volumeToken1 / result1ago.volumeToken1 * 100 - 100,
+            volumeToken1ChangeCount: result.volumeToken1 - result1ago.volumeToken1,
+
+            reserve0: result.reserve0,
+            reserve0Change: result.reserve0 / result1ago.reserve0 * 100 - 100,
+            reserve0ChangeCount: result.reserve0 - result1ago.reserve0,
+
+            reserve1: result.reserve1,
+            reserve1Change: result.reserve1 / result1ago.reserve1 * 100 - 100,
+            reserve1ChangeCount: result.reserve1 - result1ago.reserve1,
             
+            reserveUSD: result.reserveUSD,
+            reserveUSDChange: result.reserveUSD / result1ago.reserveUSD * 100 - 100,
+            reserveUSDChangeCount: result.reserveUSD - result1ago.reserveUSD,
+
+            reserveETH: result.reserveETH,
+            reserveETHChange: (result.reserveETH / result1ago.reserveETH) * 100 - 100,
+            reserveETHChangeCount: result.reserveETH - result1ago.reserveETH,
+
             trackedReserveUSD: result.trackedReserveETH * ethPriceUSD,
-            trackedReserveUSDChange: (result.trackedReserveETH * ethPriceUSD) / (result24h.trackedReserveETH * ethPriceUSD24ago) * 100 - 100,
-            trackedReserveUSDChangeCount: result.trackedReserveETH * ethPriceUSD - result24h.trackedReserveETH* ethPriceUSD24ago,
+            trackedReserveUSDChange: (result.trackedReserveETH * ethPriceUSD) / (result1ago.trackedReserveETH * ethPriceUSD1ago) * 100 - 100,
+            trackedReserveUSDChangeCount: result.trackedReserveETH * ethPriceUSD - result1ago.trackedReserveETH * ethPriceUSD1ago,
 
-            trackedReserveETHChange: (result.trackedReserveETH / result24h.trackedReserveETH) * 100 - 100,
-            trackedReserveETHChangeCount: result.trackedReserveETH - result24h.trackedReserveETH,
+            trackedReserveETH: result.trackedReserveETH,
+            trackedReserveETHChange: result.trackedReserveETH / result1ago.trackedReserveETH * 100 - 100,
+            trackedReserveETHChangeCount: result.trackedReserveETH - result1ago.trackedReserveETH,
 
-            volumeUSDOneDay: result.volumeUSD - result24h.volumeUSD,
-            volumeUSDChange: (result.volumeUSD - result24h.volumeUSD) / (result24h.volumeUSD - result48h.volumeUSD) * 100 - 100,
-            volumeUSDChangeCount: (result.volumeUSD - result24h.volumeUSD) - (result24h.volumeUSD - result48h.volumeUSD),
+            volumeUSD: result.volumeUSD,
+            volumeUSDPeriod: result.volumeUSD - result1ago.volumeUSD,
+            volumeUSDChange: (result.volumeUSD - result1ago.volumeUSD) / (result1ago.volumeUSD - result2ago.volumeUSD) * 100 - 100,
+            volumeUSDChangeCount: (result.volumeUSD - result1ago.volumeUSD) - (result1ago.volumeUSD - result2ago.volumeUSD),
             
-            untrackedVolumeUSDOneDay: result.untrackedVolumeUSD - result24h.untrackedVolumeUSD,
-            untrackedVolumeUSDChange: (result.untrackedVolumeUSD - result24h.untrackedVolumeUSD) / (result24h.untrackedVolumeUSD - result48h.untrackedVolumeUSD) * 100 - 100,
-            untrackedVolumeUSDChangeCount: (result.untrackedVolumeUSD - result24h.untrackedVolumeUSD) - (result24h.untrackedVolumeUSD - result48h.untrackedVolumeUSD),
+            untrackedVolumeUSD: result.untrackedVolumeUSD,
+            untrackedVolumeUSDPeriod: result.untrackedVolumeUSD - result1ago.untrackedVolumeUSD,
+            untrackedVolumeUSDChange: (result.untrackedVolumeUSD - result1ago.untrackedVolumeUSD) / (result1ago.untrackedVolumeUSD - result2ago.untrackedVolumeUSD) * 100 - 100,
+            untrackedVolumeUSDChangeCount: (result.untrackedVolumeUSD - result1ago.untrackedVolumeUSD) - (result1ago.untrackedVolumeUSD - result2ago.untrackedVolumeUSD),
 
-            txCountOneDay: result.txCount - result24h.txCount,
-            txCountChange: (result.txCount - result24h.txCount) / (result24h.txCount - result48h.txCount) * 100 - 100,
-            txCountChangeCount: (result.txCount - result24h.txCount) - (result24h.txCount - result48h.txCount),
+            txCount: result.txCount,
+            txCountPeriod: result.txCount - result1ago.txCount,
+            txCountChange: (result.txCount - result1ago.txCount) / (result1ago.txCount - result2ago.txCount) * 100 - 100,
+            txCountChangeCount: (result.txCount - result1ago.txCount) - (result1ago.txCount - result2ago.txCount),
         });
     });
 }
 
 
 
-function pair_callbackHourData(results: (Pair & {timestamp: number})[]) {
-    return results.map((result: any) => ({
-        id: String(result.id),
-        token0: { 
-            id: String(result.token0.id),
-            name: String(result.token0.name),
-            symbol: String(result.token0.symbol),
-            totalSupply: Number(result.token0.totalSupply),
-            derivedETH: Number(result.token0.derivedETH),
-        },
-        token1: { 
-            id: String(result.token1.id),
-            name: String(result.token1.name),
-            symbol: String(result.token1.symbol),
-            totalSupply: Number(result.token1.totalSupply),
-            derivedETH: Number(result.token1.derivedETH),
-        },
-        reserve0: Number(result.reserve0),
-        reserve1: Number(result.reserve1),
-        totalSupply: Number(result.totalSupply),
-        reserveETH: Number(result.reserveETH),
-        reserveUSD: Number(result.reserveUSD),
-        trackedReserveETH: Number(result.trackedReserveETH),
-        token0Price: Number(result.token0Price),
-        token1Price: Number(result.token1Price),
-        volumeToken0: Number(result.volumeToken0),
-        volumeToken1: Number(result.volumeToken1),
-        volumeUSD: Number(result.volumeUSD),
-        untrackedVolumeUSD: Number(result.untrackedVolumeUSD),
-        txCount: Number(result.txCount),
-        timestamp: String(result.timestamp)
-    }));
-}
+function pairChart_callback(
+        results: (Awaited<ReturnType<typeof pair>> & {timestamp: number})[],
+        ethPrices: Awaited<ReturnType<typeof ethPriceChart>>
+    ) {
 
+    return results.map((result, i) => {
+        const result1ago = results[i-1] ?? result;
+        const result2ago = results[i-2] ?? result1ago;
 
+        const ethPriceUSD = ethPrices.find(ethPrice => ethPrice.timestamp === result.timestamp)?.priceUSD ?? 0;
+        const ethPriceUSD1ago = ethPrices.find(ethPrice => ethPrice.timestamp === result1ago.timestamp)?.priceUSD ?? ethPriceUSD;
 
-const pair_propertiesDayData = [
-    'id',
-    'date',
-    'volumeUSD',
-    'volumeToken0',
-    'volumeToken1',
-    'reserveUSD',
-    'txCount'
-];
-
-function pair_callbackDayData(results: PairDayData[]) {
-    return results.map(result => ({
-        id: String(result.id),
-        date: new Date(Number(result.date) * 1000),
-        timestamp: Number(result.date),
-        volumeUSD: Number(result.volumeUSD),
-        volumeToken0: Number(result.volumeToken0),
-        volumeToken1: Number(result.volumeToken1),
-        liquidityUSD: Number(result.reserveUSD),
-        txCount: Number(result.txCount)
-    }));
+        return ({
+            ...pairChange_callback([result], [result1ago], [result2ago], ethPriceUSD, ethPriceUSD1ago)[0],
+            timestamp: result.timestamp
+        });
+    })
 }
