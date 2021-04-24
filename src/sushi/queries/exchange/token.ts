@@ -55,7 +55,7 @@ export async function tokenChange({block = undefined, timestamp = undefined, spa
 )) {
     if(!address) { throw new Error("sushi-data: Token address undefined"); }
 
-    let timestampNow = timestamp ? timestamp : block ? await blockToTimestamp(block) : (Math.floor(Date.now() / 1000));
+    const timestampNow = timestamp ? timestamp : block ? await blockToTimestamp(block) : (Math.floor(Date.now() / 1000));
     const timestamp1ago = timestampNow - spacing;
     const timestamp2ago = timestamp1ago - spacing;
 

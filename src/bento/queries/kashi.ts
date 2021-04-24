@@ -3,7 +3,6 @@ import pageResults from 'graph-results-pager';
 import { request, gql } from 'graphql-request';
 
 import {
-    subWeeks,
     getUnixTime,
     fromUnixTime
 } from "date-fns";
@@ -149,7 +148,7 @@ export async function pairsChange({block = undefined, timestamp = undefined, spa
         addresses?: string[]
     }
 ) = {}) {    
-    let timestampNow = timestamp ? timestamp : block ? await blockToTimestamp(block) : (Math.floor(Date.now() / 1000));
+    const timestampNow = timestamp ? timestamp : block ? await blockToTimestamp(block) : (Math.floor(Date.now() / 1000));
     const timestamp1ago = timestampNow - spacing;
     const timestamp2ago = timestamp1ago - spacing;
 

@@ -55,7 +55,7 @@ export async function pairChange({block = undefined, timestamp = undefined, spac
 )) {
     if(!address) { throw new Error("sushi-data: Pair address undefined"); }
     
-    let timestampNow = timestamp ? timestamp : block ? await blockToTimestamp(block) : (Math.floor(Date.now() / 1000));
+    const timestampNow = timestamp ? timestamp : block ? await blockToTimestamp(block) : (Math.floor(Date.now() / 1000));
     const timestamp1ago = timestampNow - spacing;
     const timestamp2ago = timestamp1ago - spacing;
 
@@ -199,7 +199,7 @@ export async function pairs({block = undefined, timestamp = undefined, max = und
 export async function pairsChange({block = undefined, timestamp = undefined, spacing = TWENTY_FOUR_HOURS}: (
     Arg1 & {spacing?: number}
 ) = {}) {
-    let timestampNow = timestamp ? timestamp : block ? await blockToTimestamp(block) : (Math.floor(Date.now() / 1000));
+    const timestampNow = timestamp ? timestamp : block ? await blockToTimestamp(block) : (Math.floor(Date.now() / 1000));
     const timestamp1ago = timestampNow - spacing;
     const timestamp2ago = timestamp1ago - spacing;
 
