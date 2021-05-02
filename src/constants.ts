@@ -3,7 +3,10 @@ export const graphAPIEndpoints = {
     bar: 'https://api.thegraph.com/subgraphs/name/sushiswap/sushi-bar',
     timelock: 'https://api.thegraph.com/subgraphs/name/sushiswap/sushi-timelock',
     maker: 'https://api.thegraph.com/subgraphs/name/sushiswap/sushi-maker',
-    exchange: 'https://api.thegraph.com/subgraphs/name/sushiswap/exchange',
+    exchange: {
+        1: 'https://api.thegraph.com/subgraphs/name/sushiswap/exchange',
+        137: 'https://api.thegraph.com/subgraphs/name/sushiswap/matic-exchange'
+    },
     exchange_v1: 'https://api.thegraph.com/subgraphs/name/jiro-ono/sushiswap-v1-exchange',
     blocklytics: 'https://api.thegraph.com/subgraphs/name/blocklytics/ethereum-blocks',
     lockup: 'https://api.thegraph.com/subgraphs/name/matthewlilley/lockup',
@@ -13,7 +16,10 @@ export const graphAPIEndpoints = {
 
 export const graphWSEndpoints = {
     bar: 'wss://api.thegraph.com/subgraphs/name/sushiswap/sushi-bar',
-    exchange: 'wss://api.thegraph.com/subgraphs/name/sushiswap/exchange',
+    exchange: {
+        1: 'wss://api.thegraph.com/subgraphs/name/sushiswap/exchange',
+        137: 'wss://api.thegraph.com/subgraphs/name/sushiswap/matic-exchange'
+    },
     blocklytics: 'wss://api.thegraph.com/subgraphs/name/blocklytics/ethereum-blocks'
 };
 

@@ -103,7 +103,7 @@ export async function stakedValue({block = undefined, timestamp = undefined, add
     block = block ? block : timestamp ? (await timestampToBlock(timestamp)) : undefined;
     const blockString = block ? `block: { number: ${block} }` : "";
 
-    const result = await request(graphAPIEndpoints.exchange,
+    const result = await request(graphAPIEndpoints.exchange[1],
         gql`{
                 liquidityPosition(id: "${address.toLowerCase()}-${chefAddress}", ${blockString}) {
                     ${stakedValue_properties.toString()}

@@ -35,3 +35,7 @@ export type Arg5 = {
 }
 
 export type Awaited<T> = T extends PromiseLike<infer U> ? Awaited<U> : T;
+
+export type ChainId = {
+    chainId?: 1 | 137
+};

@@ -76,7 +76,7 @@ export async function servers({block = undefined, timestamp = undefined, max = u
 
 export async function pendingServings({block = undefined, timestamp = undefined, max = undefined}: Arg2 = {}) {
     const results = await pageResults({
-        api: graphAPIEndpoints.exchange,
+        api: graphAPIEndpoints.exchange[1],
         query: {
             entity: 'users',
             selection: {

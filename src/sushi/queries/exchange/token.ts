@@ -34,7 +34,7 @@ export async function token({block = undefined, timestamp = undefined, address}:
     block = block ? block : timestamp ? (await timestampToBlock(timestamp)) : undefined;
     const blockString = block ? `block: { number: ${block} }` : "";
 
-    const result = await request(graphAPIEndpoints.exchange,
+    const result = await request(graphAPIEndpoints.exchange[1],
         gql`{
                 token(id: "${address.toLowerCase()}", ${blockString}) {
                     ${token_properties.toString()}
@@ -112,7 +112,7 @@ export async function tokenChart({minTimestamp = undefined, maxTimestamp = undef
     );
 
     let [result, ethPrices] = await Promise.all([
-        request(graphAPIEndpoints.exchange, query),
+        request(graphAPIEndpoints.exchange[1], query),
         ethPriceChart({minTimestamp, maxTimestamp, minBlock, maxBlock, min, max, spacing})
     ])
 
@@ -136,7 +136,7 @@ export function observeToken({address}: {address: string}) {
             }
     }`;
 
-    const client = new SubscriptionClient(graphWSEndpoints.exchange, { reconnect: true, }, ws,);
+    const client = new SubscriptionClient(graphWSEndpoints.exchange[1], { reconnect: true, }, ws,);
     const observable = client.request({ query });
 
     return {
@@ -160,7 +160,7 @@ export function observeToken({address}: {address: string}) {
 
 export async function tokens({block = undefined, timestamp = undefined, max = undefined}: Arg2 = {}) {
     const results = await pageResults({
-        api: graphAPIEndpoints.exchange,
+        api: graphAPIEndpoints.exchange[1],
         query: {
             entity: 'tokens',
             selection: {
@@ -211,7 +211,7 @@ export function observeTokens() {
             }
     }`;
 
-    const client = new SubscriptionClient(graphWSEndpoints.exchange, { reconnect: true, }, ws,);
+    const client = new SubscriptionClient(graphWSEndpoints.exchange[1], { reconnect: true, }, ws,);
     const observable = client.request({ query });
 
     return {

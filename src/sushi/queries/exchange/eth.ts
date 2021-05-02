@@ -23,7 +23,7 @@ export async function ethPrice({block = undefined, timestamp = undefined}: Arg1 
     block = block ? block : timestamp ? (await timestampToBlock(timestamp)) : undefined;
     const blockString = block ? `block: { number: ${block} }` : "";
 
-    const result = await request(graphAPIEndpoints.exchange,
+    const result = await request(graphAPIEndpoints.exchange[1],
         gql`{
                 bundle(id: 1, ${blockString}) {
                     ${ethPrice_properties.toString()}
@@ -60,7 +60,7 @@ export async function ethPriceChart({minTimestamp = undefined, maxTimestamp = un
         }`
     );
 
-    let result = await request(graphAPIEndpoints.exchange, query)
+    let result = await request(graphAPIEndpoints.exchange[1], query)
 
     result = Object.keys(result)
         .map(key => ({priceUSD: ethPrice_callback(result[key]), timestamp: Number(key.split("timestamp")[1])}))
@@ -80,7 +80,7 @@ export function observeEthPrice() {
             }
     }`;
 
-    const client = new SubscriptionClient(graphWSEndpoints.exchange, { reconnect: true, }, ws,);
+    const client = new SubscriptionClient(graphWSEndpoints.exchange[1], { reconnect: true, }, ws,);
     const observable = client.request({ query });
 
     return {
