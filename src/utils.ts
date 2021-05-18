@@ -14,19 +14,14 @@ import {
     subHours,
   } from "date-fns";
 
-import type {
-    TimestampToBlock,
-    TimestampsToBlocks,
-    BlockToTimestamp,
-    GetAverageBlockTime
-} from './../types/utils'
+import { Arg1, ChainId } from '../types';
 
 
 
-export const timestampToBlock: TimestampToBlock = async(timestamp) => {
+export async function timestampToBlock(timestamp: number, { chainId = 1 }: ChainId = {}) {
     timestamp = String(timestamp).length > 10 ? Math.floor(timestamp / 1000) : timestamp;
 
-    let result = await request(blocklytics,
+    let result = await request(blocklytics[chainId],
         gql`{
             blocks(first: 1, orderBy: timestamp, orderDirection: desc, where: { timestamp_lte: ${timestamp} }) {
                 number
@@ -37,7 +32,7 @@ export const timestampToBlock: TimestampToBlock = async(timestamp) => {
     return Number(result.blocks[0].number);
 }
 
-export const timestampsToBlocks: TimestampsToBlocks = async(timestamps) => {   
+export async function timestampsToBlocks(timestamps: number[], { chainId = 1 }: ChainId = {}) {   
     const query = (
         gql`{
             ${timestamps.map((timestamp) => (gql`
@@ -47,7 +42,7 @@ export const timestampsToBlocks: TimestampsToBlocks = async(timestamps) => {
         }`
     );
 
-    let result = await request(blocklytics, query)
+    let result = await request(blocklytics[chainId], query)
 
     result = Object.keys(result)
             .map(key => ({...result[key], timestamp: key.split("timestamp")[1]}))
@@ -58,8 +53,8 @@ export const timestampsToBlocks: TimestampsToBlocks = async(timestamps) => {
     return result = Object.values(result).map((e: any) => Number(e[0].number));
 }
 
-export const blockToTimestamp: BlockToTimestamp = async(block) => {
-    const result = await request(blocklytics,
+export async function blockToTimestamp(block: number, { chainId = 1 }: ChainId = {}) {
+    const result = await request(blocklytics[chainId],
         gql`{
             blocks(first: 1, where: { number: ${block} }) {
                 timestamp
@@ -70,7 +65,7 @@ export const blockToTimestamp: BlockToTimestamp = async(block) => {
     return Number(result.blocks[0].timestamp);
 }
 
-export const getAverageBlockTime: GetAverageBlockTime = async({block = undefined, timestamp = undefined} = {}) => {
+export async function getAverageBlockTime({block = undefined, timestamp = undefined, chainId = 1}: Arg1 & ChainId = {}) {
 
     timestamp = timestamp ? String(timestamp).length > 10 ? Math.floor(timestamp / 1000) : timestamp : undefined;
     timestamp = timestamp ? timestamp : block ? await blockToTimestamp(block) : undefined;
@@ -80,7 +75,7 @@ export const getAverageBlockTime: GetAverageBlockTime = async({block = undefined
     const end = getUnixTime(now);
 
     const blocks = (await pageResults({
-        api: blocklytics,
+        api: blocklytics[chainId],
         query: {
             entity: 'blocks',
             selection: {

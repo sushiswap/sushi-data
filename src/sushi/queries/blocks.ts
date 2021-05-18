@@ -9,14 +9,15 @@ import { timestampToBlock } from '../../utils';
 import type {
     Arg1,
     Awaited,
+    ChainId,
 } from './../../../types/index'
 
 import { Block } from '../../../types/subgraphs/blocklytics';
 
 
 
-export async function latestBlock() {
-    const result = await request(graphAPIEndpoints.blocklytics,
+export async function latestBlock({chainId = 1}: ChainId = {}) {
+    const result = await request(graphAPIEndpoints.blocklytics[chainId],
         gql`{
             blocks(first: 1, orderBy: number, orderDirection: desc) {
                 ${latestBlock_properties.toString()}
@@ -29,7 +30,7 @@ export async function latestBlock() {
 
 
 
-export function observeLatestBlock() {
+export function observeLatestBlock({chainId = 1}: ChainId = {}) {
     const query = gql`
         subscription {
             blocks(first: 1, orderBy: number, orderDirection: desc) {
@@ -37,7 +38,7 @@ export function observeLatestBlock() {
             }
     }`;
 
-    const client = new SubscriptionClient(graphWSEndpoints.blocklytics, { reconnect: true, }, ws,);
+    const client = new SubscriptionClient(graphWSEndpoints.blocklytics[chainId], { reconnect: true, }, ws,);
     const observable = client.request({ query });
 
     return {
@@ -59,11 +60,11 @@ export function observeLatestBlock() {
 
 
 
-export async function getBlock({block = undefined, timestamp = undefined}: Arg1 = {}) {
+export async function getBlock({block = undefined, timestamp = undefined, chainId = 1}: Arg1 & ChainId = {}) {
     block = block ? block : timestamp ? (await timestampToBlock(timestamp)) : undefined;
     const blockString = block ? `block: { number: ${block} }` : "";
 
-    const result = await request(graphAPIEndpoints.blocklytics,
+    const result = await request(graphAPIEndpoints.blocklytics[chainId],
         gql`{
             blocks(first: 1, orderBy: number, orderDirection: desc, ${blockString}) {
                 ${getBlock_properties.toString()}

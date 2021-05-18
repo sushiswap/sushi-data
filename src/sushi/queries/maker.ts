@@ -9,6 +9,7 @@ import type {
     Arg1,
     Arg4,
     Arg2,
+    ChainId,
 } from './../../../types/index';
 
 import { Maker, Server, Serving } from '../../../types/subgraphs/maker';
@@ -74,14 +75,21 @@ export async function servers({block = undefined, timestamp = undefined, max = u
 
 
 
-export async function pendingServings({block = undefined, timestamp = undefined, max = undefined}: Arg2 = {}) {
+export async function pendingServings({
+    block = undefined,
+    timestamp = undefined,
+    max = undefined,
+    chainId = 1
+}: (
+    Arg2 & ChainId
+) = {}) {
     const results = await pageResults({
-        api: graphAPIEndpoints.exchange[1],
+        api: graphAPIEndpoints.exchange[chainId],
         query: {
             entity: 'users',
             selection: {
                 where: {
-                    id: `\\"${makerAddress}\\"`,
+                    id: `\\"${makerAddress[chainId]}\\"`,
                 },
                 block: block ? { number: block } : timestamp ? { number: await timestampToBlock(timestamp) } : undefined,
             },

@@ -19,22 +19,23 @@ import {
     Arg1,
     Arg2,
     Arg5,
-    Awaited
+    Awaited,
+    ChainId
 } from '../../../../types';
 
 import { Token } from '../../../../types/subgraphs/exchange';
 
 
 
-export async function token({block = undefined, timestamp = undefined, address}: (
-    Arg1 & {address: string}
+export async function token({block = undefined, timestamp = undefined, address, chainId = 1}: (
+    Arg1 & ChainId & {address: string}
 )) {
     if(!address) { throw new Error("sushi-data: Token address undefined"); }
 
-    block = block ? block : timestamp ? (await timestampToBlock(timestamp)) : undefined;
+    block = block ? block : timestamp ? (await timestampToBlock(timestamp, {chainId})) : undefined;
     const blockString = block ? `block: { number: ${block} }` : "";
 
-    const result = await request(graphAPIEndpoints.exchange[1],
+    const result = await request(graphAPIEndpoints.exchange[chainId],
         gql`{
                 token(id: "${address.toLowerCase()}", ${blockString}) {
                     ${token_properties.toString()}
@@ -47,33 +48,39 @@ export async function token({block = undefined, timestamp = undefined, address}:
 
 
 
-export async function tokenChange({block = undefined, timestamp = undefined, spacing = TWENTY_FOUR_HOURS, address}: (
-    Arg1 & {
+export async function tokenChange({
+    block = undefined,
+    timestamp = undefined,
+    spacing = TWENTY_FOUR_HOURS,
+    address,
+    chainId = 1
+}: (
+    Arg1 & ChainId & {
         spacing?: number;
         address: string
     }
 )) {
     if(!address) { throw new Error("sushi-data: Token address undefined"); }
 
-    const timestampNow = timestamp ? timestamp : block ? await blockToTimestamp(block) : (Math.floor(Date.now() / 1000));
+    const timestampNow = timestamp ? timestamp : block ? await blockToTimestamp(block, {chainId}) : (Math.floor(Date.now() / 1000));
     const timestamp1ago = timestampNow - spacing;
     const timestamp2ago = timestamp1ago - spacing;
 
-    block = timestamp ? await timestampToBlock(timestamp) : block;
+    block = timestamp ? await timestampToBlock(timestamp, {chainId}) : block;
     const [block1ago, block2ago] = await Promise.all([
-        timestampToBlock(timestamp1ago),
-        timestampToBlock(timestamp2ago)
+        timestampToBlock(timestamp1ago, {chainId}),
+        timestampToBlock(timestamp2ago, {chainId})
     ]);
 
     const [result, result1ago, result2ago] = await Promise.all([
-        token({block: block, address}),
-        token({block: block1ago, address}),
-        token({block: block2ago, address})
+        token({block: block, address, chainId}),
+        token({block: block1ago, address, chainId}),
+        token({block: block2ago, address, chainId})
     ]);
 
     const [ethPriceUSD, ethPriceUSD1ago] = await Promise.all([
-        ethPrice({block: block}),
-        ethPrice({block: block1ago})
+        ethPrice({timestamp: timestamp}),
+        ethPrice({timestamp: timestamp1ago})
     ]);
 
     return tokenChange_callback([result], [result1ago], [result2ago], ethPriceUSD, ethPriceUSD1ago)[0];
@@ -81,13 +88,23 @@ export async function tokenChange({block = undefined, timestamp = undefined, spa
 
 
 
-export async function tokenChart({minTimestamp = undefined, maxTimestamp = undefined, minBlock = undefined, maxBlock = undefined, min = 10, max = undefined, spacing = TWENTY_FOUR_HOURS, address}: (
-    Arg5 & {address: string}
+export async function tokenChart({
+    minTimestamp = undefined,
+    maxTimestamp = undefined,
+    minBlock = undefined,
+    maxBlock = undefined,
+    min = 10,
+    max = undefined,
+    spacing = TWENTY_FOUR_HOURS,
+    address,
+    chainId = 1
+}: (
+    Arg5 & ChainId & {address: string}
 )) {
     if(!address) { throw new Error("sushi-data: Token address undefined"); }
     
-    minTimestamp = minBlock ? await blockToTimestamp(minBlock) : minTimestamp;
-    maxTimestamp = maxBlock ? await blockToTimestamp(maxBlock) : maxTimestamp;
+    minTimestamp = minBlock ? await blockToTimestamp(minBlock, {chainId}) : minTimestamp;
+    maxTimestamp = maxBlock ? await blockToTimestamp(maxBlock, {chainId}) : maxTimestamp;
 
     const endTime = maxTimestamp ? fromUnixTime(maxTimestamp) : new Date();
     let time = (minTimestamp ? minTimestamp : Math.floor(Date.now() / 1000) - spacing * min) - spacing * 2; // neccessary for some of the calcs, the two results will be cut off
@@ -98,7 +115,7 @@ export async function tokenChart({minTimestamp = undefined, maxTimestamp = undef
         time += spacing;
     }
 
-    const blocks = await timestampsToBlocks(timestamps);
+    const blocks = await timestampsToBlocks(timestamps, {chainId});
 
     const query = (
         gql`{
@@ -112,8 +129,8 @@ export async function tokenChart({minTimestamp = undefined, maxTimestamp = undef
     );
 
     let [result, ethPrices] = await Promise.all([
-        request(graphAPIEndpoints.exchange[1], query),
-        ethPriceChart({minTimestamp, maxTimestamp, minBlock, maxBlock, min, max, spacing})
+        request(graphAPIEndpoints.exchange[chainId], query),
+        ethPriceChart({minTimestamp, maxTimestamp, min, max, spacing})
     ])
 
     result = Object.keys(result)
@@ -126,7 +143,7 @@ export async function tokenChart({minTimestamp = undefined, maxTimestamp = undef
 
 
 
-export function observeToken({address}: {address: string}) {
+export function observeToken({address, chainId = 1}: ChainId & {address: string}) {
     if(!address) { throw new Error("sushi-data: Token address undefined"); }
 
     const query = gql`
@@ -136,7 +153,7 @@ export function observeToken({address}: {address: string}) {
             }
     }`;
 
-    const client = new SubscriptionClient(graphWSEndpoints.exchange[1], { reconnect: true, }, ws,);
+    const client = new SubscriptionClient(graphWSEndpoints.exchange[chainId], { reconnect: true, }, ws,);
     const observable = client.request({ query });
 
     return {
@@ -158,13 +175,20 @@ export function observeToken({address}: {address: string}) {
 
 
 
-export async function tokens({block = undefined, timestamp = undefined, max = undefined}: Arg2 = {}) {
+export async function tokens({
+    block = undefined,
+    timestamp = undefined,
+    max = undefined,
+    chainId = 1
+}: (
+    Arg2 & ChainId 
+)= {}) {
     const results = await pageResults({
-        api: graphAPIEndpoints.exchange[1],
+        api: graphAPIEndpoints.exchange[chainId],
         query: {
             entity: 'tokens',
             selection: {
-                block: block ? { number: block } : timestamp ? { number: await timestampToBlock(timestamp!) } : undefined,
+                block: block ? { number: block } : timestamp ? { number: await timestampToBlock(timestamp, {chainId}) } : undefined,
             },
             properties: token_properties
         },
@@ -176,34 +200,41 @@ export async function tokens({block = undefined, timestamp = undefined, max = un
 
 
 
-export async function tokensChange({block = undefined, timestamp = undefined, max = undefined}: Arg2 = {}) {
-    const timestampNow = timestamp ? timestamp : block ? await blockToTimestamp(block) : (Math.floor(Date.now() / 1000));
-    const timestamp24ago = timestampNow! - TWENTY_FOUR_HOURS;
-    const timestamp48ago = timestamp24ago - TWENTY_FOUR_HOURS;
+export async function tokensChange({
+    block = undefined,
+    timestamp = undefined,
+    max = undefined,
+    chainId = 1
+}: (
+    Arg2 & ChainId
+) = {}) {
+    const timestampNow = timestamp ? timestamp : block ? await blockToTimestamp(block, {chainId}) : (Math.floor(Date.now() / 1000));
+    const timestamp1ago = timestampNow - TWENTY_FOUR_HOURS;
+    const timestamp2ago = timestamp1ago - TWENTY_FOUR_HOURS;
 
-    block = timestamp ? await timestampToBlock(timestamp!) : block;
-    const [block24ago, block48ago] = await Promise.all([
-        timestampToBlock(timestamp24ago),
-        timestampToBlock(timestamp48ago)
+    block = timestamp ? await timestampToBlock(timestamp, {chainId}) : block;
+    const [block1ago, block2ago] = await Promise.all([
+        timestampToBlock(timestamp1ago, {chainId}),
+        timestampToBlock(timestamp2ago, {chainId})
     ]);
 
-    const [results, results24ago, results48ago] = await Promise.all([
-        tokens({block: block, max}),
-        tokens({block: block24ago, max}),
-        tokens({block: block48ago, max})
+    const [results, results1ago, results2ago] = await Promise.all([
+        tokens({block: block, max, chainId}),
+        tokens({block: block1ago, max, chainId}),
+        tokens({block: block2ago, max, chainId})
     ]);
 
-    const [ethPriceUSD, ethPriceUSD24ago] = await Promise.all([
-        ethPrice({block: block}),
-        ethPrice({block: block24ago})
+    const [ethPriceUSD, ethPriceUSD1ago] = await Promise.all([
+        ethPrice({timestamp: timestamp}),
+        ethPrice({timestamp: timestamp1ago})
     ]);
 
-    return tokenChange_callback(results, results24ago, results48ago, ethPriceUSD, ethPriceUSD24ago);
+    return tokenChange_callback(results, results1ago, results2ago, ethPriceUSD, ethPriceUSD1ago);
 }
 
 
 
-export function observeTokens() {
+export function observeTokens({chainId = 1}: ChainId = {}) {
     const query = gql`
         subscription {
             tokens(first: 1000, orderBy: volumeUSD, orderDirection: desc) {
@@ -211,7 +242,7 @@ export function observeTokens() {
             }
     }`;
 
-    const client = new SubscriptionClient(graphWSEndpoints.exchange[1], { reconnect: true, }, ws,);
+    const client = new SubscriptionClient(graphWSEndpoints.exchange[chainId], { reconnect: true, }, ws,);
     const observable = client.request({ query });
 
     return {

@@ -20,21 +20,22 @@ import type {
     Arg2,
     Arg5,
     Awaited,
+    ChainId,
 } from './../../../../types'
 
 import { Pair } from '../../../../types/subgraphs/exchange';
 
 
 
-export async function pair({block = undefined, timestamp = undefined, address}: (
-    Arg1 & {address: string}
+export async function pair({block = undefined, timestamp = undefined, address, chainId = 1}: (
+    Arg1 & ChainId & {address: string}
 )) {
     if(!address) { throw new Error("sushi-data: Pair address undefined"); }
 
-    block = block ? block : timestamp ? (await timestampToBlock(timestamp)) : undefined;
+    block = block ? block : timestamp ? (await timestampToBlock(timestamp, {chainId})) : undefined;
     const blockString = block ? `block: { number: ${block} }` : "";
 
-    const result = await request(graphAPIEndpoints.exchange[1],
+    const result = await request(graphAPIEndpoints.exchange[chainId],
         gql`{
                 pair(id: "${address.toLowerCase()}", ${blockString}) {
                     ${pair_properties.toString()}
@@ -47,33 +48,33 @@ export async function pair({block = undefined, timestamp = undefined, address}: 
 
 
 
-export async function pairChange({block = undefined, timestamp = undefined, spacing= TWENTY_FOUR_HOURS, address}: (
-    Arg1 & {
+export async function pairChange({block = undefined, timestamp = undefined, spacing = TWENTY_FOUR_HOURS, address, chainId = 1}: (
+    Arg1 & ChainId & {
         spacing?: number;
         address: string
     }
 )) {
     if(!address) { throw new Error("sushi-data: Pair address undefined"); }
     
-    const timestampNow = timestamp ? timestamp : block ? await blockToTimestamp(block) : (Math.floor(Date.now() / 1000));
+    const timestampNow = timestamp ? timestamp : block ? await blockToTimestamp(block, {chainId}) : (Math.floor(Date.now() / 1000));
     const timestamp1ago = timestampNow - spacing;
     const timestamp2ago = timestamp1ago - spacing;
 
     block = timestamp ? await timestampToBlock(timestamp) : block;
     const [block1ago, block2ago] = await Promise.all([
-        timestampToBlock(timestamp1ago),
-        timestampToBlock(timestamp2ago)
+        timestampToBlock(timestamp1ago, {chainId}),
+        timestampToBlock(timestamp2ago, {chainId})
     ]);
 
     const [result, result1ago, result2ago] = await Promise.all([
-        pair({block: block, address}),
-        pair({block: block1ago, address}),
-        pair({block: block2ago, address})
+        pair({block: block, address, chainId}),
+        pair({block: block1ago, address, chainId}),
+        pair({block: block2ago, address, chainId})
     ])
 
     const [ethPriceUSD, ethPriceUSD1ago] = await Promise.all([
-        ethPrice({block: block}),
-        ethPrice({block: block1ago})
+        ethPrice({timestamp: timestamp}),
+        ethPrice({timestamp: timestamp1ago})
     ]);
 
     return pairChange_callback([result], [result1ago], [result2ago], ethPriceUSD, ethPriceUSD1ago)[0];
@@ -81,13 +82,23 @@ export async function pairChange({block = undefined, timestamp = undefined, spac
 
 
 
-export async function pairChart({minTimestamp = undefined, maxTimestamp = undefined, minBlock = undefined, maxBlock = undefined, min = 10, max = undefined, spacing = TWENTY_FOUR_HOURS, address}: (
-    Arg5 & {address: string}
+export async function pairChart({
+    minTimestamp = undefined,
+    maxTimestamp = undefined,
+    minBlock = undefined,
+    maxBlock = undefined,
+    min = 10,
+    max = undefined,
+    spacing = TWENTY_FOUR_HOURS,
+    address,
+    chainId = 1
+}: (
+    Arg5 & ChainId & {address: string}
 )) {
     if(!address) { throw new Error("sushi-data: Pair address undefined"); }
     
-    minTimestamp = minBlock ? await blockToTimestamp(minBlock) : minTimestamp;
-    maxTimestamp = maxBlock ? await blockToTimestamp(maxBlock) : maxTimestamp;
+    minTimestamp = minBlock ? await blockToTimestamp(minBlock, {chainId}) : minTimestamp;
+    maxTimestamp = maxBlock ? await blockToTimestamp(maxBlock, {chainId}) : maxTimestamp;
 
     const endTime = maxTimestamp ? fromUnixTime(maxTimestamp) : new Date();
     let time = (minTimestamp ? minTimestamp : Math.floor(Date.now() / 1000) - spacing * min) - spacing * 2; // neccessary for some of the calcs, the two results will be cut off
@@ -98,7 +109,7 @@ export async function pairChart({minTimestamp = undefined, maxTimestamp = undefi
         time += spacing;
     }
 
-    const blocks = await timestampsToBlocks(timestamps);
+    const blocks = await timestampsToBlocks(timestamps, {chainId});
 
     const query = (
         gql`{
@@ -112,8 +123,8 @@ export async function pairChart({minTimestamp = undefined, maxTimestamp = undefi
     );
 
     let [result, ethPrices] = await Promise.all([
-        request(graphAPIEndpoints.exchange[1], query),
-        ethPriceChart({minTimestamp, maxTimestamp, minBlock, maxBlock, min, max, spacing})
+        request(graphAPIEndpoints.exchange[chainId], query),
+        ethPriceChart({minTimestamp, maxTimestamp, min, max, spacing})
     ])
 
     result = Object.keys(result)
@@ -126,7 +137,7 @@ export async function pairChart({minTimestamp = undefined, maxTimestamp = undefi
 
 
 
-export function observePair({address}: {address: string}) {
+export function observePair({address, chainId = 1}: {address: string} & ChainId) {
     if(!address) { throw new Error("sushi-data: Pair address undefined"); }
 
     const query = gql`
@@ -136,7 +147,7 @@ export function observePair({address}: {address: string}) {
             }
         }`
 
-    const client = new SubscriptionClient(graphWSEndpoints.exchange[1], { reconnect: true, }, ws,);
+    const client = new SubscriptionClient(graphWSEndpoints.exchange[chainId], { reconnect: true, }, ws,);
     const observable = client.request({ query });
 
     return {
@@ -158,12 +169,18 @@ export function observePair({address}: {address: string}) {
 
 
 
-export async function pairs({block = undefined, timestamp = undefined, max = undefined, addresses = undefined}: (
-    Arg2 & {addresses?: string[] | undefined}
+export async function pairs({
+    block = undefined,
+    timestamp = undefined,
+    max = undefined,
+    addresses = undefined,
+    chainId = 1
+}: (
+    Arg2 & ChainId & {addresses?: string[] | undefined}
 ) = {}) {
     if(addresses) {
         
-        block = block ? block : timestamp ? (await timestampToBlock(timestamp)) : undefined;
+        block = block ? block : timestamp ? (await timestampToBlock(timestamp, {chainId})) : undefined;
         const blockString = block ? `block: { number: ${block} }` : "";
 
         const query = (
@@ -175,12 +192,12 @@ export async function pairs({block = undefined, timestamp = undefined, max = und
             }`
         );
 
-        const result: Pair[] = Object.values(await request(graphAPIEndpoints.exchange[1], query));
+        const result: Pair[] = Object.values(await request(graphAPIEndpoints.exchange[chainId], query));
         return pair_callback(result);
     }
     
     const results = await pageResults({
-        api: graphAPIEndpoints.exchange[1],
+        api: graphAPIEndpoints.exchange[chainId],
         query: {
             entity: 'pairs',
             selection: {
@@ -196,28 +213,33 @@ export async function pairs({block = undefined, timestamp = undefined, max = und
 
 
 
-export async function pairsChange({block = undefined, timestamp = undefined, spacing = TWENTY_FOUR_HOURS}: (
-    Arg1 & {spacing?: number}
+export async function pairsChange({
+    block = undefined,
+    timestamp = undefined,
+    spacing = TWENTY_FOUR_HOURS,
+    chainId = 1
+}: (
+    Arg1 & ChainId & {spacing?: number}
 ) = {}) {
-    const timestampNow = timestamp ? timestamp : block ? await blockToTimestamp(block) : (Math.floor(Date.now() / 1000));
+    const timestampNow = timestamp ? timestamp : block ? await blockToTimestamp(block, {chainId}) : (Math.floor(Date.now() / 1000));
     const timestamp1ago = timestampNow - spacing;
     const timestamp2ago = timestamp1ago - spacing;
 
-    block = timestamp ? await timestampToBlock(timestamp) : block;
+    block = timestamp ? await timestampToBlock(timestamp, {chainId}) : block;
     const [block1ago, block2ago] = await Promise.all([
-        timestampToBlock(timestamp1ago),
-        timestampToBlock(timestamp2ago)
+        timestampToBlock(timestamp1ago, {chainId}),
+        timestampToBlock(timestamp2ago, {chainId})
     ]);
 
     const [results, results1ago, results2ago] = await Promise.all([
-        pairs({block: block}),
-        pairs({block: block1ago}),
-        pairs({block: block2ago})
+        pairs({block: block, chainId}),
+        pairs({block: block1ago, chainId}),
+        pairs({block: block2ago, chainId})
     ]);
 
     const [ethPriceUSD, ethPriceUSD1ago] = await Promise.all([
-        ethPrice({block: block}),
-        ethPrice({block: block1ago})
+        ethPrice({timestamp: timestamp}),
+        ethPrice({timestamp: timestamp1ago})
     ]);
 
     return pairChange_callback(results, results1ago, results2ago, ethPriceUSD, ethPriceUSD1ago);
@@ -225,7 +247,7 @@ export async function pairsChange({block = undefined, timestamp = undefined, spa
 
 
 
-export function observePairs () {
+export function observePairs ({chainId = 1}: ChainId = {}) {
     const query = gql`
         subscription {
             pairs(first: 1000, orderBy: reserveUSD, orderDirection: desc) {
@@ -233,7 +255,7 @@ export function observePairs () {
             }
     }`;
 
-    const client = new SubscriptionClient(graphWSEndpoints.exchange[1], { reconnect: true, }, ws,);
+    const client = new SubscriptionClient(graphWSEndpoints.exchange[chainId], { reconnect: true, }, ws,);
     const observable = client.request({ query });
 
     return {

@@ -76,7 +76,7 @@ export async function factoryChart({
     chainId = 1
 }: (
     Arg5 & ChainId
-) = {}) {
+)) {
     minTimestamp = minBlock ? await blockToTimestamp(minBlock) : minTimestamp;
     maxTimestamp = maxBlock ? await blockToTimestamp(maxBlock) : maxTimestamp;
 
