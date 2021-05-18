@@ -10,13 +10,16 @@ import { User, Week } from '../../../types/subgraphs/vesting';
 
 
 
-export async function user({block = undefined, timestamp = undefined, address}: (
-    Arg1 & {address: string}
+export async function user({block = undefined, timestamp = undefined, address, type = "direct"}: (
+    Arg1 & {
+        address: string;
+        type?: "direct" | "protocol"
+    }
 )) {
     block = block ? block : timestamp ? (await timestampToBlock(timestamp)) : undefined;
     const blockString = block ? `block: { number: ${block} }` : "";
 
-    const result = await request(graphAPIEndpoints.vesting,
+    const result = await request(graphAPIEndpoints.vesting[type],
         gql`{
             user(id: "${address.toLowerCase()}", ${blockString}) {
                 ${user_properties.toString()}
@@ -29,9 +32,13 @@ export async function user({block = undefined, timestamp = undefined, address}: 
 
 
 
-export async function users({block = undefined, timestamp = undefined}: Arg1 = {}) {
+export async function users({block = undefined, timestamp = undefined, type = "direct"}: (
+    Arg1 & {
+        type?: "direct" | "protocol";
+    }
+) = {}) {
     const results = await pageResults({
-        api: graphAPIEndpoints.vesting,
+        api: graphAPIEndpoints.vesting[type],
         query: {
             entity: 'users',
             selection: {
@@ -46,13 +53,16 @@ export async function users({block = undefined, timestamp = undefined}: Arg1 = {
 
 
 
-export async function week({block = undefined, timestamp = undefined, week}: (
-    Arg1 & {week: number}
+export async function week({block = undefined, timestamp = undefined, week, type = "direct"}: (
+    Arg1 & {
+        week: number;
+        type?: "direct" | "protocol";
+    }
 )) {
     block = block ? block : timestamp ? (await timestampToBlock(timestamp)) : undefined;
     const blockString = block ? `block: { number: ${block} }` : "";
 
-    const result = await request(graphAPIEndpoints.vesting,
+    const result = await request(graphAPIEndpoints.vesting[type],
         gql`{
             week(id: "${week}", ${blockString}) {
                 ${week_properties.toString()}
@@ -65,9 +75,13 @@ export async function week({block = undefined, timestamp = undefined, week}: (
 
 
 
-export async function weeks({block = undefined, timestamp = undefined}: Arg1 = {}) {
+export async function weeks({block = undefined, timestamp = undefined, type = "direct"}: (
+    Arg1 & {
+        type?: "direct" | "protocol";
+    }
+) = {}) {
     const results = await pageResults({
-        api: graphAPIEndpoints.vesting,
+        api: graphAPIEndpoints.vesting[type],
         query: {
             entity: 'weeks',
             selection: {

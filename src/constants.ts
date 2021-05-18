@@ -11,7 +11,10 @@ export const graphAPIEndpoints = {
     blocklytics: 'https://api.thegraph.com/subgraphs/name/blocklytics/ethereum-blocks',
     lockup: 'https://api.thegraph.com/subgraphs/name/matthewlilley/lockup',
     bentobox: 'https://api.thegraph.com/subgraphs/name/jiro-ono/bento',
-    vesting: 'https://api.thegraph.com/subgraphs/name/lufycz/sushiclaimedvesting'
+    vesting: {
+        "direct": 'https://api.thegraph.com/subgraphs/name/sushiswap/vesting',
+        "protocol": "https://api.thegraph.com/subgraphs/name/sushiswap/vesting"
+    }
 };
 
 export const graphWSEndpoints = {
