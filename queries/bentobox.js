@@ -42,14 +42,15 @@ module.exports = {
   },
 
   async kashiStakedInfo() {
-    const result = await request(ENDPOINTS[1],
-      gql`{
-            kashiPairs(where: {masterContract: "${MASTER_CONTRACT}"}) {
-              ${kashiStakedInfo.properties.toString()}
-            }
-          }`
-    );
+    const results = await pageResults({
+      api: ENDPOINTS[1],
+      query: {
+        entity: 'kashiPairs',
+        properties: kashiStakedInfo.properties
+      }
+    })
 
+    let result = {}
     result.sushiUSD = await sushiPriceUSD();
     result.ethUSD = await ethPriceUSD();
 
@@ -59,7 +60,7 @@ module.exports = {
 
     let pools = await chefPools();
     let onsen_pools = pools.map(pool => pool.pair)
-    let filtered_result = result.kashiPairs.filter(pair => onsen_pools.includes(pair.id))
+    let filtered_result = results.filter(pair => onsen_pools.includes(pair.id))
 
     return kashiStakedInfo.callback(filtered_result)
   },
