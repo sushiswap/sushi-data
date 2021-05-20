@@ -63,7 +63,6 @@ module.exports = {
     let filtered_results = results.filter(pair => onsen_pools.includes(pair.id))
     result.kashiPairs = filtered_results
 
-    console.log(result)
     return kashiStakedInfo.callback(result)
   },
 
