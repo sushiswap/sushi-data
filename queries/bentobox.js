@@ -60,9 +60,11 @@ module.exports = {
 
     let pools = await chefPools();
     let onsen_pools = pools.map(pool => pool.pair)
-    let filtered_result = results.filter(pair => onsen_pools.includes(pair.id))
+    let filtered_results = results.filter(pair => onsen_pools.includes(pair.id))
+    result.kashiPairs = filtered_results
 
-    return kashiStakedInfo.callback(filtered_result)
+    console.log(result)
+    return kashiStakedInfo.callback(result)
   },
 
 }
@@ -93,7 +95,7 @@ const kashiStakedInfo = {
   ],
 
   async callback(results) {
-    return await Promise.all(results.map(async (result) => {
+    return await Promise.all(results.kashiPairs.map(async (result) => {
       let asset = await tokenInfo({ token_address: result.asset.id });
       let assetPool = await chefPool({ pool_address: result.id });
       if (assetPool === undefined) { return }
