@@ -193,7 +193,7 @@ export async function pairs({
         );
 
         const result: Pair[] = Object.values(await request(graphAPIEndpoints.exchange[chainId], query));
-        return pair_callback(result);
+        return pair_callback(result.filter(e => e !== null));
     }
     
     const results = await pageResults({
