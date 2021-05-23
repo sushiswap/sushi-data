@@ -104,7 +104,7 @@ export async function factoryChart({
 
     result = Object.keys(result)
         .map(key => ({...factory_callback(result[key][0]), timestamp: Number(key.split("timestamp")[1])}))
-        .sort((a, b) => (a.timestamp) - (b.timestamp))
+        .sort((a, b) => (b.timestamp) - (a.timestamp))
         .filter(e => Object.keys(e).length > 1); // Filters empty results (1 because there will always be a timestamp present)
 
 

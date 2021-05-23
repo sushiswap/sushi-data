@@ -64,7 +64,7 @@ export async function ethPriceChart({minTimestamp = undefined, maxTimestamp = un
 
     result = Object.keys(result)
         .map(key => ({priceUSD: ethPrice_callback(result[key]), timestamp: Number(key.split("timestamp")[1])}))
-        .sort((a, b) => a.timestamp - b.timestamp)
+        .sort((a, b) => b.timestamp - a.timestamp)
         .filter(e => Object.keys(e).length > 1); // Filters empty results (1 because there will always be a timestamp present)
 
     return ethPriceChart_callback(result).slice(1).slice(undefined, max);

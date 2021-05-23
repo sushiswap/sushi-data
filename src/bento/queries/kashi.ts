@@ -96,7 +96,7 @@ export async function pairChart({minTimestamp = undefined, maxTimestamp = undefi
 
     result = Object.keys(result)
         .map(key => ({...result[key], timestamp: Number(key.split("timestamp")[1])}))
-        .sort((a, b) => (a.timestamp) - (b.timestamp))
+        .sort((a, b) => (b.timestamp) - (a.timestamp))
         .filter(e => Object.keys(e).length > 1)
 
     return pair_callbackChart(result).slice(undefined, max);
