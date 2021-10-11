@@ -16,7 +16,7 @@ export const graphAPIEndpoints = {
     bentobox: 'https://api.thegraph.com/subgraphs/name/jiro-ono/bento',
     vesting: {
         "direct": 'https://api.thegraph.com/subgraphs/name/sushiswap/vesting',
-        "protocol": "https://api.thegraph.com/subgraphs/name/sushiswap/vesting"
+        "protocol": "https://api.thegraph.com/subgraphs/name/sushiswap/sushi-claimed-vesting"
     }
 };
 
