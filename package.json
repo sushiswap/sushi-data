@@ -4,6 +4,7 @@
 	"version": "1.0.26",
 	"author": "SushiSwap",
 	"main": "index",
+	"repository": "sushiswap/sushi-data",
 	"scripts": {
 		"lint": "eslint .",
 		"pack": "webpack --mode production",
