@@ -42,7 +42,7 @@ The below all return a Promise that resolves with the requested results.
 33. `masterchef.users({¹})` Gets all users and data for all of the users' pools.
 34. `masterchef.apys({¹})` Gets pool info for all pools in MasterChef including APYs.
 35. `masterchef.apys24h({¹})` Gets 24h pool info for all pools in MasterChef including APYs.
-36. `exchange.stakedValue({¹, token_address})` Get pricing info for MasterChef pool.
+36. `masterchef.stakedValue({¹, token_address})` Get pricing info for MasterChef pool.
 37. `bar.info({¹})` Gets SushiBar contract info.
 38. `bar.user({¹, user_address})` Gets SushiBar data for specified user.
 39. `maker.info({¹})` Gets SushiMaker contract info.
