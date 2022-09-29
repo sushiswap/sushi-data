@@ -1,6 +1,6 @@
 module.exports = {
     graphAPIEndpoints: {
-        masterchef: 'https://api.thegraph.com/subgraphs/name/sushiswap/master-chef',
+        masterchef: 'https://api.thegraph.com/subgraphs/name/jiro-ono/masterchef-staging',
         bar: 'https://api.thegraph.com/subgraphs/name/sushiswap/sushi-bar',
         timelock: 'https://api.thegraph.com/subgraphs/name/sushiswap/sushi-timelock',
         maker: 'https://api.thegraph.com/subgraphs/name/sushiswap/sushi-maker',
